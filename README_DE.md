@@ -1,15 +1,12 @@
-# Plater – Kennzeichen in 4K-Videos verpixeln (Apple Silicon)
-
-Dieses Projekt erkennt Kfz-Kennzeichen in 4K-Videos und verpixelt sie automatisch. Optimiert fuer Apple Silicon (M4) mit MPS, Fallback auf CPU. Fokus auf Datenschutz: lieber zu viel verpixeln als Kennzeichen zu uebersehen.
-
-Englische Anleitung: siehe `README_EN.md`.
+# DSGVO-Pixeler
+Dieses Tool verarbeitet 4K-Videos lokal und verpixelt automatisch Kfz-Kennzeichen und Gesichter mit YOLOv8. Optimiert fuer Apple Silicon (M-Serie) und Action-Cam-Footage, priorisiert es Datenschutz durch zuverlaessige Anonymisierung sensibler Bildinhalte bei Erhalt von Videoqualitaet und Audio.
 
 ## Voraussetzungen
 - Python 3.10+
 - ffmpeg via Homebrew: `brew install ffmpeg`
-- Ein YOLOv8-Kennzeichenmodell als `.pt` Datei im Ordner `models/plates` (z. B. `models/plates/best.pt`)
-- Optional: Gesichtsmodelle in `models/faces/` (Default: alle .pt dort).
-- Optional: Zusatzmodelle in `models/extra/` (nur wenn aktiviert via `--use_extra`).
+- Ein YOLOv8-Kennzeichenmodell als `.pt` Datei in `models/plates/` (z. B. `models/plates/best.pt`)
+- Optional: Gesichtsmodelle in `models/faces/` (Default: alle .pt dort)
+- Optional: Zusatzmodelle in `models/extra/` (nur wenn aktiviert via `--use_extra`)
 
 ## Setup
 ```bash
@@ -27,12 +24,12 @@ source .venv/bin/activate
 ```
 3) Ausfuehren (Dateinamen anpassen):
 ```bash
-python blur_plates_m4.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt
+python dsgvo-pixeler.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt
 ```
 
-Wenn dir beim Start Fehlermeldungen wie `ModuleNotFoundError: No module named 'cv2'` erscheinen, fehlt die Umgebung. Dann nutze die Setup-Schritte oben.
+Wenn dir Fehlermeldungen wie `ModuleNotFoundError: No module named 'cv2'` erscheinen, fehlt die Umgebung. Dann nutze die Setup-Schritte oben.
 
-Hinweis: `--output` ist optional. Wenn du es weglässt, wird die Datei automatisch im gleichen Ordner wie das Input-Video erzeugt (mit Infos wie Weights, Preset und Timestamp im Namen).
+Hinweis: `--output` ist optional. Wenn du es weglasst, wird die Datei automatisch im gleichen Ordner wie das Input-Video erzeugt (mit Infos wie Weights, Preset und Timestamp im Namen).
 
 Wenn du ohne Parameter startest, zeigt das Programm eine kurze, leicht verstaendliche Hilfe an.
 
@@ -49,15 +46,15 @@ Wenn du ohne Parameter startest, zeigt das Programm eine kurze, leicht verstaend
 ## Beispiele
 HEVC Default (4K, MPS, Audio wird uebernommen):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output.mp4 \
   --weights /path/to/plate_model.pt
 ```
 
-H264 kompatibler Output (laeuft fast ueberall, empfehle 50M fuer beste Qualitaet):
+H264 kompatibler Output (lauft fast ueberall, empfehle 50M fuer beste Qualitaet):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output_h264.mp4 \
   --weights /path/to/plate_model.pt \
@@ -67,7 +64,7 @@ python blur_plates_m4.py \
 
 Software-Encoding erzwingen (wenn Hardware-Encoding zickt):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output_sw.mp4 \
   --weights /path/to/plate_model.pt \
@@ -76,7 +73,7 @@ python blur_plates_m4.py \
 
 Nur Schnelltest mit kleinerer Arbeitsaufloesung (schneller, weniger genau):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output_fast.mp4 \
   --weights /path/to/plate_model.pt \
@@ -85,7 +82,7 @@ python blur_plates_m4.py \
 
 Preset fuer hohe Qualitaet (langsamer, bessere Erkennung):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output_quality.mp4 \
   --weights /path/to/plate_model.pt \
@@ -95,17 +92,17 @@ python blur_plates_m4.py \
 Weitere Beispiele (ausfuehrlich):
 Nur Kennzeichen (Gesichter aus):
 ```bash
-python blur_plates_m4.py --input input.mp4 --weights models/plates/best.pt --no_faces
+python dsgvo-pixeler.py --input input.mp4 --weights models/plates/best.pt --no_faces
 ```
 
 Nur Gesichter (Kennzeichen aus):
 ```bash
-python blur_plates_m4.py --input input.mp4 --faces_weights models/faces/face1.pt --no_plates
+python dsgvo-pixeler.py --input input.mp4 --faces_weights models/faces/face1.pt --no_plates
 ```
 
 Mehrere Modelle (Plates + Faces):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --weights models/plates/a.pt,models/plates/b.pt \
   --faces_weights models/faces/face1.pt,models/faces/face2.pt
@@ -113,12 +110,12 @@ python blur_plates_m4.py \
 
 Extra-Modelle zusaetzlich nutzen:
 ```bash
-python blur_plates_m4.py --input input.mp4 --use_extra
+python dsgvo-pixeler.py --input input.mp4 --use_extra
 ```
 
 Pixel-Zonen definieren und anzeigen:
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --no_pixel_zone_px1 120,1500,900,2160 \
   --no_pixel_zone_px2 3000,1500,3800,2160 \
@@ -127,11 +124,11 @@ python blur_plates_m4.py \
 
 Testlauf (nur 2 Minuten, Debug-Overlay):
 ```bash
-python blur_plates_m4.py --input input.mp4 --test_minutes 2 --debug_overlay
+python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 ```
 
 ## Wichtige Parameter
-- `work_w`: Arbeitsbreite fuer Detektion (z.B. 1280 oder 1920). 0 = Originalaufloesung.
+- `work_w`: Arbeitsbreite fuer Detektion (z. B. 1280 oder 1920). 0 = Originalaufloesung.
 - `imgsz`: YOLO Inferenzgroesse (groesser = bessere Erkennung, aber langsamer).
 - `conf`: Confidence Threshold (niedriger = mehr Treffer).
 - `blocks`: Pixelblock-Groesse (kleiner = grober, staerkerer Effekt).
@@ -160,23 +157,8 @@ python blur_plates_m4.py --input input.mp4 --test_minutes 2 --debug_overlay
 Tipp: Wenn `models/plates/` Modelle enthalten und du `--weights` vergisst, werden sie automatisch genutzt.
 
 ## FAQ
-Wie sicher ist die Verpixelung?
-Das Ziel ist Unlesbarkeit. Nutze kleine `blocks` und ausreichend `pad`, um nichts zu uebersehen.
-
-Warum wird mein HUD/eine Anzeige verpixelt?
-Nutze `--no_pixel_zone`, um feste Bereiche auszunehmen (z. B. unten links).
-
-Warum ist das Ergebnis langsam?
-4K + YOLO ist rechenintensiv. Setze `work_w` kleiner (z. B. 1280) und pruefe die Geschwindigkeit.
-
 Werden mehrere Modelle parallel verarbeitet?
 Nein, sie laufen nacheinander (stabiler und oft schneller).
-
-Warum funktioniert Hardware-Encoding nicht?
-Wenn VideoToolbox zickt, nutze `--force_sw`. Siehe Troubleshooting.
-
-Gibt es Audio im Output?
-Ja, Audio wird vom Input uebernommen (wenn vorhanden).
 
 ## Hinweis zu Insta360
 Empfehlung: In Insta360 Studio zuerst reframen/flat exportieren (16:9), dann mit diesem Tool verpixeln.

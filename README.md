@@ -24,7 +24,7 @@ source .venv/bin/activate
 ```
 3) Run (adjust filenames):
 ```bash
-python blur_plates_m4.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt
+python dsgvo-pixeler.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt
 ```
 
 If you see errors like `ModuleNotFoundError: No module named 'cv2'`, the environment is missing. Use the setup steps above.
@@ -46,7 +46,7 @@ If you start without parameters, the program shows a short, easy help message.
 ## Examples
 HEVC default (4K, MPS, audio is preserved):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output.mp4 \
   --weights /path/to/plate_model.pt
@@ -54,7 +54,7 @@ python blur_plates_m4.py \
 
 H.264 compatible output (plays everywhere, recommend 50M for best quality):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output_h264.mp4 \
   --weights /path/to/plate_model.pt \
@@ -64,7 +64,7 @@ python blur_plates_m4.py \
 
 Force software encoding (if hardware encoding fails):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output_sw.mp4 \
   --weights /path/to/plate_model.pt \
@@ -73,7 +73,7 @@ python blur_plates_m4.py \
 
 Quick test with lower detection width (faster, less accurate):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output_fast.mp4 \
   --weights /path/to/plate_model.pt \
@@ -82,7 +82,7 @@ python blur_plates_m4.py \
 
 Quality preset (slower, better detection):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output_quality.mp4 \
   --weights /path/to/plate_model.pt \
@@ -92,17 +92,17 @@ python blur_plates_m4.py \
 More examples (detailed):
 Plates only (no faces):
 ```bash
-python blur_plates_m4.py --input input.mp4 --weights models/plates/best.pt --no_faces
+python dsgvo-pixeler.py --input input.mp4 --weights models/plates/best.pt --no_faces
 ```
 
 Faces only (no plates):
 ```bash
-python blur_plates_m4.py --input input.mp4 --faces_weights models/faces/face1.pt --no_plates
+python dsgvo-pixeler.py --input input.mp4 --faces_weights models/faces/face1.pt --no_plates
 ```
 
 Multiple models (plates + faces):
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --weights models/plates/a.pt,models/plates/b.pt \
   --faces_weights models/faces/face1.pt,models/faces/face2.pt
@@ -110,12 +110,12 @@ python blur_plates_m4.py \
 
 Use extra models:
 ```bash
-python blur_plates_m4.py --input input.mp4 --use_extra
+python dsgvo-pixeler.py --input input.mp4 --use_extra
 ```
 
 Define pixel zones and show them:
 ```bash
-python blur_plates_m4.py \
+python dsgvo-pixeler.py \
   --input input.mp4 \
   --no_pixel_zone_px1 120,1500,900,2160 \
   --no_pixel_zone_px2 3000,1500,3800,2160 \
@@ -124,7 +124,7 @@ python blur_plates_m4.py \
 
 Test run (first 2 minutes, debug overlay):
 ```bash
-python blur_plates_m4.py --input input.mp4 --test_minutes 2 --debug_overlay
+python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 ```
 
 ## Key parameters

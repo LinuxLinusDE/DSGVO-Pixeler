@@ -18,7 +18,7 @@ except Exception as e:
     print("  pip install -r requirements.txt")
     print("")
     print("Danach starten mit:")
-    print("  python blur_plates_m4.py --input input.mp4 --output output.mp4 --weights models/best.pt")
+    print("  python dsgvo-pixeler.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt")
     raise SystemExit(2) from e
 
 
@@ -303,7 +303,7 @@ def main() -> int:
         print("  pip install -U pip")
         print("  pip install -r requirements.txt")
         print("Beispiel:")
-        print("  python blur_plates_m4.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt")
+        print("  python dsgvo-pixeler.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt")
         print("Kurz-Erklaerung:")
         print("  Erkennt Kennzeichen im Video und verpixelt sie fuer Datenschutz.")
         print("Wichtige Optionen (kurz):")
@@ -325,7 +325,7 @@ def main() -> int:
         print("  --no_faces            (nur Kennzeichen verpixeln)")
         print("  --force_sw            (Software-Encoding erzwingen)")
         print("Weitere Hilfe:")
-        print("  python blur_plates_m4.py -h")
+        print("  python dsgvo-pixeler.py -h")
         return 0
     args = parse_args()
     resolve_paths(args)
