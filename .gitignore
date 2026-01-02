@@ -16,6 +16,8 @@ venv/
 # Ultralytics cache
 .ultralytics/
 
+lst.txt
+
 # User-specific files
 *.rsuser
 *.suo

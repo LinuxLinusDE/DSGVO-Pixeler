@@ -131,7 +131,9 @@ python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 - `work_w`: Arbeitsbreite fuer Detektion (z. B. 1280 oder 1920). 0 = Originalaufloesung.
 - `imgsz`: YOLO Inferenzgroesse (groesser = bessere Erkennung, aber langsamer).
 - `conf`: Confidence Threshold (niedriger = mehr Treffer).
-- `blocks`: Pixelblock-Groesse (kleiner = grober, staerkerer Effekt).
+- `blocks_plates`: Pixelblock-Groesse fuer Kennzeichen (groesser = grober).
+- `blocks_faces`: Pixelblock-Groesse fuer Gesichter (groesser = grober).
+- `blocks`: deprecatedes Alias fuer `blocks_plates`.
 - `pad`: Sicherheitsrand in Pixeln um jede Box.
 - `no_pixel_zone`: No-Pixel-Zone in Prozent als `x1,x2,y1,y2` (Default: aus). Beispiel: `0,20,63,100` fuer HUD unten links.
 - `no_pixel_zone2`: Zweite No-Pixel-Zone (Default: aus). Beispiel: `78,100,59,100` fuer HUD unten rechts.

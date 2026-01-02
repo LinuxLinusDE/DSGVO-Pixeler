@@ -131,7 +131,9 @@ python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 - `work_w`: detection width (e.g. 1280 or 1920). 0 = original resolution.
 - `imgsz`: YOLO inference size (larger = better detection, slower).
 - `conf`: confidence threshold (lower = more detections).
-- `blocks`: pixel block size (smaller = coarser pixelation).
+- `blocks_plates`: pixel block size for plates (larger = coarser).
+- `blocks_faces`: pixel block size for faces (larger = coarser).
+- `blocks`: deprecated alias for `blocks_plates`.
 - `pad`: safety padding around each box (pixels).
 - `no_pixel_zone`: no-pixel zone as `x1,x2,y1,y2` in percent (default: off). Example: `0,20,63,100` for bottom-left HUD.
 - `no_pixel_zone2`: second no-pixel zone (default: off). Example: `78,100,59,100` for bottom-right HUD.

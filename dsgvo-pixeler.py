@@ -38,8 +38,8 @@ def pixelate_roi(img: np.ndarray, x1: int, y1: int, x2: int, y2: int, blocks: in
     if rh == 0 or rw == 0:
         return
     blocks = max(1, int(blocks))
-    small_w = min(blocks, rw)
-    small_h = max(1, int(rh * (small_w / float(rw))))
+    small_w = max(1, rw // blocks)
+    small_h = max(1, rh // blocks)
     small = cv2.resize(roi, (small_w, small_h), interpolation=cv2.INTER_LINEAR)
     pixel = cv2.resize(small, (rw, rh), interpolation=cv2.INTER_NEAREST)
     img[y1:y2, x1:x2] = pixel
@@ -174,7 +174,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--conf", type=float, default=None, help="Confidence Threshold")
     p.add_argument("--imgsz", type=int, default=None, help="YOLO imgsz")
     p.add_argument("--work_w", type=int, default=None, help="Arbeitsbreite fuer Detektion (0 = Original)")
-    p.add_argument("--blocks", type=int, default=None, help="Pixel-Blockgroesse; kleiner = grober")
+    p.add_argument("--blocks", type=int, default=None, help="Pixel-Blockgroesse (deprecated, groesser = grober)")
+    p.add_argument("--blocks_plates", type=int, default=None, help="Pixel-Blockgroesse fuer Kennzeichen (groesser = grober)")
+    p.add_argument("--blocks_faces", type=int, default=None, help="Pixel-Blockgroesse fuer Gesichter (groesser = grober)")
     p.add_argument("--pad", type=int, default=None, help="Sicherheitsrand in Pixel")
     p.add_argument("--codec", choices=["hevc", "h264"], default="hevc", help="Video codec")
     p.add_argument("--bitrate", default=None, help="Video bitrate, z.B. 50M oder auto")
@@ -259,9 +261,9 @@ def parse_model_list(value: str) -> list:
 
 def apply_preset(args: argparse.Namespace) -> None:
     presets: Dict[str, Dict[str, object]] = {
-        "fast": {"conf": 0.3, "imgsz": 960, "work_w": 1280, "blocks": 16, "pad": 20, "bitrate": "auto"},
-        "balanced": {"conf": 0.25, "imgsz": 1280, "work_w": 1920, "blocks": 16, "pad": 20, "bitrate": "auto"},
-        "quality": {"conf": 0.2, "imgsz": 1600, "work_w": 0, "blocks": 16, "pad": 24, "bitrate": "auto"},
+        "fast": {"conf": 0.3, "imgsz": 960, "work_w": 1280, "blocks_plates": 16, "blocks_faces": 24, "pad": 20, "bitrate": "auto"},
+        "balanced": {"conf": 0.25, "imgsz": 1280, "work_w": 1920, "blocks_plates": 16, "blocks_faces": 24, "pad": 20, "bitrate": "auto"},
+        "quality": {"conf": 0.2, "imgsz": 1600, "work_w": 0, "blocks_plates": 16, "blocks_faces": 24, "pad": 24, "bitrate": "auto"},
     }
     preset = presets.get(args.preset, presets["balanced"])
     if args.conf is None:
@@ -270,8 +272,10 @@ def apply_preset(args: argparse.Namespace) -> None:
         args.imgsz = int(preset["imgsz"])
     if args.work_w is None:
         args.work_w = int(preset["work_w"])
-    if args.blocks is None:
-        args.blocks = int(preset["blocks"])
+    if args.blocks_plates is None:
+        args.blocks_plates = int(args.blocks) if args.blocks is not None else int(preset["blocks_plates"])
+    if args.blocks_faces is None:
+        args.blocks_faces = int(preset["blocks_faces"])
     if args.pad is None:
         args.pad = int(preset["pad"])
     if args.bitrate is None:
@@ -313,11 +317,13 @@ def main() -> int:
         print("  --work_w 1920         (schneller, etwas weniger genau)")
         print("  --imgsz 1280          (bessere Erkennung, langsamer)")
         print("  --conf 0.25           (niedriger = mehr Treffer)")
-        print("  --blocks 16           (Pixelstaerke, kleiner = grober)")
+        print("  --blocks_plates 16    (Kennzeichen, groesser = grober)")
+        print("  --blocks_faces 24     (Gesichter, groesser = grober)")
+        print("  --blocks 16           (deprecated)")
         print("  --pad 20              (Sicherheitsrand)")
-        print("  --no_pixel_zone 0,20,63,100  (optional, HUD-Bereich aussparen)")
-        print("  --no_pixel_zone2 78,100,59,100 (optional, HUD-Bereich rechts)")
-        print("  --no_pixel_zone_px1 120,1500,900,2160 (Pixel-Zone)")
+        print("  --no_pixel_zone 0,20,63,100  (optional, x1,x2,y1,y2)")
+        print("  --no_pixel_zone2 78,100,59,100 (optional, x1,x2,y1,y2)")
+        print("  --no_pixel_zone_px1 120,1500,900,2160 (Pixel-Zone, x1,y1,x2,y2)")
         print("  --test_minutes 2      (nur erste 2 Minuten verarbeiten)")
         print("  --debug_overlay       (BBox-Overlay fuer Debug)")
         print("  --debug_zones         (No-Pixel-Zonen rot einzeichnen)")
@@ -408,21 +414,21 @@ def main() -> int:
     models = []
     for path in plate_models:
         try:
-            models.append(YOLO(path))
+            models.append((YOLO(path), "plates"))
         except Exception as e:
             print(f"YOLO Kennzeichen-Modell konnte nicht geladen werden: {path} ({e})", file=sys.stderr)
             cap.release()
             return 2
     for path in face_models:
         try:
-            models.append(YOLO(path))
+            models.append((YOLO(path), "faces"))
         except Exception as e:
             print(f"YOLO Gesichts-Modell konnte nicht geladen werden: {path} ({e})", file=sys.stderr)
             cap.release()
             return 2
     for path in extra_models:
         try:
-            models.append(YOLO(path))
+            models.append((YOLO(path), "extra"))
         except Exception as e:
             print(f"YOLO Extra-Modell konnte nicht geladen werden: {path} ({e})", file=sys.stderr)
             cap.release()
@@ -487,7 +493,7 @@ def main() -> int:
                 for zx1, zy1, zx2, zy2 in nz_list:
                     cv2.rectangle(frame, (zx1, zy1), (zx2, zy2), (0, 0, 255), 3)
 
-            for model in models:
+            for model, kind in models:
                 try:
                     results = model.predict(
                         det_frame,
@@ -521,7 +527,8 @@ def main() -> int:
                         x1, y1, x2, y2 = apply_pad(x1, y1, x2, y2, args.pad, w, h)
                         if nz_list and any(boxes_overlap((x1, y1, x2, y2), nz) for nz in nz_list):
                             continue
-                        pixelate_roi(frame, x1, y1, x2, y2, args.blocks)
+                        blocks_val = args.blocks_faces if kind == "faces" else args.blocks_plates
+                        pixelate_roi(frame, x1, y1, x2, y2, blocks_val)
                         if args.debug_overlay:
                             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
