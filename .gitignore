@@ -3,6 +3,19 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Ignore all hidden directories
+.*/
+
+# macOS
+.DS_Store
+
+# Python virtual environments (redundant, aber explizit)
+.venv/
+venv/
+
+# Ultralytics cache
+.ultralytics/
+
 # User-specific files
 *.rsuser
 *.suo
@@ -10,6 +23,8 @@
 *.userosscache
 *.sln.docstates
 *.env
+*.PT
+*.code-workspace
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
