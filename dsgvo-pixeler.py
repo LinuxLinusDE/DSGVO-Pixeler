@@ -60,6 +60,7 @@ def build_ffmpeg_cmd(
     codec: str,
     bitrate: str,
     use_sw: bool,
+    include_audio: bool,
 ) -> list:
     if codec == "hevc":
         vcodec = "libx265" if use_sw else "hevc_videotoolbox"
@@ -86,8 +87,6 @@ def build_ffmpeg_cmd(
         input_path,
         "-map",
         "0:v:0",
-        "-map",
-        "1:a?",
         "-vf",
         f"format={pix_fmt}",
         "-pix_fmt",
@@ -96,12 +95,15 @@ def build_ffmpeg_cmd(
         vcodec,
         "-b:v",
         bitrate,
-        "-c:a",
-        "copy",
         "-movflags",
         "+faststart",
         output,
     ]
+    if include_audio:
+        cmd[cmd.index("-vf"):cmd.index("-vf")] = ["-map", "1:a?"]
+        cmd[cmd.index("-movflags"):cmd.index("-movflags")] = ["-c:a", "copy"]
+    else:
+        cmd[cmd.index("-movflags"):cmd.index("-movflags")] = ["-an"]
     if not use_sw:
         idx = cmd.index("-b:v")
         cmd[idx:idx] = ["-allow_sw", "1"]
@@ -188,6 +190,7 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--force_sw", action="store_true", help="Software-Encoding erzwingen (libx265/libx264)")
     p.add_argument("--debug_overlay", action="store_true", help="BBox-Overlay fuer Debug einzeichnen")
+    p.add_argument("--no_audio", action="store_true", help="Audio entfernen")
     p.add_argument("--debug_zones", action="store_true", help="No-Pixel-Zonen rot einzeichnen")
     p.add_argument("--no_plates", action="store_true", help="Kennzeichen-Erkennung deaktivieren")
     p.add_argument("--no_faces", action="store_true", help="Gesichts-Erkennung deaktivieren")
@@ -326,7 +329,9 @@ def main() -> int:
         print("  --no_pixel_zone_px1 120,1500,900,2160 (Pixel-Zone, x1,y1,x2,y2)")
         print("  --test_minutes 2      (nur erste 2 Minuten verarbeiten)")
         print("  --debug_overlay       (BBox-Overlay fuer Debug)")
+        print("  --no_audio            (Audio entfernen)")
         print("  --debug_zones         (No-Pixel-Zonen rot einzeichnen)")
+        print("  --no_audio            (Audio entfernen)")
         print("  --no_plates           (nur Gesichter verpixeln)")
         print("  --no_faces            (nur Kennzeichen verpixeln)")
         print("  --force_sw            (Software-Encoding erzwingen)")
@@ -439,7 +444,7 @@ def main() -> int:
     if isinstance(bitrate, str) and bitrate.lower() == "auto":
         bitrate = probe_bitrate(args.input)
     bitrate_used = bitrate
-    cmd = build_ffmpeg_cmd(args.output, args.input, w, h, fps, args.codec, bitrate, use_sw)
+    cmd = build_ffmpeg_cmd(args.output, args.input, w, h, fps, args.codec, bitrate, use_sw, not args.no_audio)
 
     proc = None
     frame_idx = 0

@@ -71,6 +71,14 @@ python dsgvo-pixeler.py \
   --force_sw
 ```
 
+Audiospur entfernen:
+```bash
+python dsgvo-pixeler.py \
+  --input input.mp4 \
+  --output output_noaudio.mp4 \
+  --no_audio
+```
+
 Nur Schnelltest mit kleinerer Arbeitsaufloesung (schneller, weniger genau):
 ```bash
 python dsgvo-pixeler.py \
@@ -144,6 +152,7 @@ python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 - `preset`: `fast`, `balanced`, `quality` fuer einfache Speed/Qualitaets-Wahl.
 - `debug_overlay`: Zeichnet Boxen zur Kontrolle ins Video.
 - `debug_zones`: Zeichnet die No-Pixel-Zonen rot ins Video.
+- `no_audio`: Entfernt die Audiospur im Output.
 - `bitrate`: Standard ist `auto` (uebernimmt Bitrate vom Input), alternativ z. B. `50M`.
 - `faces_weights`: Liste der Gesichtsmodelle (Default: alle in `models/faces/`).
 - `weights`: Liste der Kennzeichenmodelle (Default: alle in `models/plates/`).

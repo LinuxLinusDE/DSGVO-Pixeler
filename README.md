@@ -144,6 +144,7 @@ python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 - `preset`: `fast`, `balanced`, `quality` for quick speed/quality choice.
 - `debug_overlay`: draws boxes for verification.
 - `debug_zones`: draws the no-pixel zones in red.
+- `no_audio`: remove the audio track in the output.
 - `bitrate`: default is `auto` (uses input bitrate), or set e.g. `50M`.
 - `faces_weights`: list of face models (default: all in `models/faces/`).
 - `weights`: list of plate models (default: all in `models/plates/`).
