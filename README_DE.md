@@ -43,7 +43,58 @@ Wenn du ohne Parameter startest, zeigt das Programm eine kurze, leicht verstaend
 - Standard: alle `.pt` Dateien in `models/faces/`.
 - Alternativ: `--faces_weights models/faces/a.pt,models/faces/b.pt`
 
-## Beispiele
+## Funktionen
+Ueberblick ueber alle Funktionen und was das Script im Hintergrund macht:
+
+Erkennung
+- Kennzeichen + Gesichter standardmaessig aktiv (YOLOv8). Abschaltbar mit `--no_plates` oder `--no_faces`.
+- Standard: alle `.pt` Modelle in `models/plates/` und `models/faces/`.
+
+Verpixelung
+- Echte Mosaik-Pixel (kein Blur).
+- Separate Staerke: `--blocks_plates`, `--blocks_faces`.
+- Optionaler Sicherheitsrand: `--pad`.
+
+Tiling
+- `--tiling N` teilt Frames in ein NxN Raster, verbessert kleine Kennzeichen.
+- Tiling verlangsamt deutlich und deaktiviert Tracking. Default ist 2x2.
+
+Tracking
+- Standardmaessig aktiv, reduziert Flackern. Deaktivieren mit `--no_track`.
+- Bei Tiling wird Tracking automatisch deaktiviert.
+
+No‑Pixel‑Zonen
+- Pixel-Zonen: `--no_pixel_zone_px1..4` (x1,y1,x2,y2 in Pixeln).
+- `--debug_zones` zeichnet die Zonen rot ein.
+
+Snapshots
+- `--snapshot_every` speichert JPEG-Snapshots alle N Minuten (standardmaessig im Ordner des Input-Videos).
+- `--snapshot_size` steuert die Aufloesung (z. B. 1920x1080). Snapshot-Namen enthalten den gleichen Timestamp wie das Output-Video.
+- `--snapshot_dir` legt den Ausgabeordner fest (Default: gleicher Ordner wie das Input-Video).
+
+Performance
+- `--work_w` reduziert die Arbeitsaufloesung fuer schnellere Erkennung.
+- `--imgsz` steuert die YOLO-Inferenzgroesse.
+
+Encoding und Audio
+- ffmpeg encodiert das Video (VideoToolbox auf macOS, CPU-Fallback mit `--force_sw`).
+- `--no_audio` entfernt die Audiospur.
+- `--bitrate auto` uebernimmt die Input-Bitrate via ffprobe; alternativ fester Wert.
+- `-movflags +faststart` fuer schnellen Start beim Streaming.
+
+Logging
+- Fortschritt mit Prozent und ETA, plus effektive FPS.
+- Zusammenfassung am Ende mit Aufloesung, Bitrate, Encoder, Audio, Tracking, Tiling und Modellanzahl.
+
+## Tiling
+Tiling teilt jedes Frame in kleinere Kacheln (z. B. 2x2). Dadurch werden sehr kleine Kennzeichen in 4K+ besser erkannt, allerdings steigt die Rechenzeit, weil YOLO pro Kachel laeuft.
+
+Hinweis: Tiling kann die Verarbeitung deutlich verlangsamen. Beispiel (MacBook M4, 5760x3240 @ 29.97 fps): 1798 Frames (~59s Video) dauerten 9m 36s bei 2x2 Tiling.
+
+Tipp: Fuer schnelle Tests `--test_minutes 1`, `--preset fast` oder `--tiling 1` verwenden.
+
+Hinweis: Snapshots erzeugen zusaetzliche CPU- und Festplatten-Last, fuer YouTube-Thumbnails meist vernachlaessigbar.
+
 HEVC Default (4K, MPS, Audio wird uebernommen):
 ```bash
 python dsgvo-pixeler.py \
@@ -121,6 +172,11 @@ Extra-Modelle zusaetzlich nutzen:
 python dsgvo-pixeler.py --input input.mp4 --use_extra
 ```
 
+Tiling fuer kleine Kennzeichen (2x2, Default):
+```bash
+python dsgvo-pixeler.py --input input.mp4 --tiling 2
+```
+
 Pixel-Zonen definieren und anzeigen:
 ```bash
 python dsgvo-pixeler.py \
@@ -135,6 +191,11 @@ Testlauf (nur 2 Minuten, Debug-Overlay):
 python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 ```
 
+Snapshots alle 5 Minuten (Full-HD):
+```bash
+python dsgvo-pixeler.py --input input.mp4 --snapshot_every 5 --snapshot_size 1920x1080
+```
+
 ## Wichtige Parameter
 - `work_w`: Arbeitsbreite fuer Detektion (z. B. 1280 oder 1920). 0 = Originalaufloesung.
 - `imgsz`: YOLO Inferenzgroesse (groesser = bessere Erkennung, aber langsamer).
@@ -143,8 +204,6 @@ python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 - `blocks_faces`: Pixelblock-Groesse fuer Gesichter (groesser = grober).
 - `blocks`: deprecatedes Alias fuer `blocks_plates`.
 - `pad`: Sicherheitsrand in Pixeln um jede Box.
-- `no_pixel_zone`: No-Pixel-Zone in Prozent als `x1,x2,y1,y2` (Default: aus). Beispiel: `0,20,63,100` fuer HUD unten links.
-- `no_pixel_zone2`: Zweite No-Pixel-Zone (Default: aus). Beispiel: `78,100,59,100` fuer HUD unten rechts.
 - `no_pixel_zone_px1..4`: Bis zu vier No-Pixel-Zonen in Pixeln als `x1,y1,x2,y2` (oben links -> unten rechts).
 - Tipp: Koordinaten fuer Pixel-Zonen kannst du z. B. hier bestimmen: https://imageonline.io/find-coordinates-of-image/ oder https://get-image-coordinates.vercel.app/
 - `force_sw`: Software-Encoding erzwingen (nuetzlich, wenn VideoToolbox zickt).
@@ -153,6 +212,11 @@ python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 - `debug_overlay`: Zeichnet Boxen zur Kontrolle ins Video.
 - `debug_zones`: Zeichnet die No-Pixel-Zonen rot ins Video.
 - `no_audio`: Entfernt die Audiospur im Output.
+- `no_track`: Tracking deaktivieren (Tracking ist standardmaessig aktiv).
+- `tiling`: Frame in Kacheln teilen fuer kleine Objekte (1-10, Default 2).
+- `snapshot_every`: Snapshot alle N Minuten speichern (0 = aus).
+- `snapshot_dir`: Ausgabeordner fuer Snapshots (Default: Input-Ordner).
+- `snapshot_size`: Snapshot-Groesse, z. B. 1920x1080.
 - `bitrate`: Standard ist `auto` (uebernimmt Bitrate vom Input), alternativ z. B. `50M`.
 - `faces_weights`: Liste der Gesichtsmodelle (Default: alle in `models/faces/`).
 - `weights`: Liste der Kennzeichenmodelle (Default: alle in `models/plates/`).
@@ -170,6 +234,15 @@ Tipp: Wenn `models/plates/` Modelle enthalten und du `--weights` vergisst, werde
 ## FAQ
 Werden mehrere Modelle parallel verarbeitet?
 Nein, sie laufen nacheinander (stabiler und oft schneller).
+
+Ist Tracking standardmaessig aktiv?
+Ja. Mit `--no_track` kannst du es deaktivieren.
+
+Warum ist Tracking bei Tiling deaktiviert?
+Tracking ueber Kacheln ist unzuverlaessig, weil Objekt-IDs nicht konsistent zwischen den Tiles gematcht werden koennen. Daher deaktiviert das Tool Tracking bei Tiling.
+
+Was ist der Standardwert fuer Tiling?
+`--tiling` steht standardmaessig auf `2` (2x2 Tiling).
 
 ## Hinweis zu Insta360
 Empfehlung: In Insta360 Studio zuerst reframen/flat exportieren (16:9), dann mit diesem Tool verpixeln.

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import os
+import re
 import subprocess
 import sys
 import time
@@ -191,21 +192,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--force_sw", action="store_true", help="Software-Encoding erzwingen (libx265/libx264)")
     p.add_argument("--debug_overlay", action="store_true", help="BBox-Overlay fuer Debug einzeichnen")
     p.add_argument("--no_audio", action="store_true", help="Audio entfernen")
+    p.add_argument("--no_track", action="store_true", help="Tracking deaktivieren")
+    p.add_argument("--snapshot_every", type=int, default=0, help="Snapshot alle N Minuten (0 = aus)")
+    p.add_argument("--snapshot_dir", default="", help="Snapshot-Ordner (Default: Input-Ordner)")
+    p.add_argument("--snapshot_size", default="1920x1080", help="Snapshot-Groesse, z.B. 1920x1080")
     p.add_argument("--debug_zones", action="store_true", help="No-Pixel-Zonen rot einzeichnen")
     p.add_argument("--no_plates", action="store_true", help="Kennzeichen-Erkennung deaktivieren")
     p.add_argument("--no_faces", action="store_true", help="Gesichts-Erkennung deaktivieren")
+    p.add_argument("--tiling", type=int, default=2, help="Tiling fuer kleine Objekte (1-10, 1 = aus)")
     p.add_argument("--test_minutes", type=int, default=0, help="Nur die ersten N Minuten verarbeiten (0 = alles)")
     p.add_argument("--log_every", type=int, default=200, help="Log alle n Frames")
-    p.add_argument(
-        "--no_pixel_zone",
-        default="",
-        help="No-Pixel-Zone in Prozent als x1,x2,y1,y2 (z.B. 0,20,63,100). Leer = aus",
-    )
-    p.add_argument(
-        "--no_pixel_zone2",
-        default="",
-        help="Zweite No-Pixel-Zone in Prozent (z.B. 78,100,59,100). Leer = aus",
-    )
     p.add_argument(
         "--no_pixel_zone_px1",
         default="",
@@ -284,8 +280,13 @@ def apply_preset(args: argparse.Namespace) -> None:
     if args.bitrate is None:
         args.bitrate = str(preset["bitrate"])
 
+def extract_ts_from_path(path: str) -> str:
+    m = re.search(r"\d{8}-\d{6}", os.path.basename(path))
+    return m.group(0) if m else ""
 
-def build_output_path(args: argparse.Namespace) -> str:
+
+
+def build_output_path(args: argparse.Namespace, ts: str) -> str:
     in_dir = os.path.dirname(args.input)
     in_base = os.path.splitext(os.path.basename(args.input))[0]
     weights_base = "models"
@@ -295,7 +296,6 @@ def build_output_path(args: argparse.Namespace) -> str:
         weights_base = f"{weights_base}-faces"
     if args.extra_weights or args.use_extra:
         weights_base = f"{weights_base}-extra"
-    ts = time.strftime("%Y%m%d-%H%M%S")
     test_tag = f"_test{args.test_minutes}m" if args.test_minutes else ""
     fname = f"{in_base}_plates_{weights_base}_{args.preset}_{args.codec}{test_tag}_{ts}.mp4"
     return os.path.join(in_dir, fname)
@@ -303,7 +303,7 @@ def build_output_path(args: argparse.Namespace) -> str:
 
 def main() -> int:
     if len(sys.argv) == 1:
-        print("Plater - Kennzeichen verpixeln (einfacher Start)")
+        print("DSGVO-Pixeler - Kennzeichen & Gesichter verpixeln (einfacher Start)")
         print("Vorbereitung (einmalig):")
         print("  python3 -m venv .venv")
         print("  source .venv/bin/activate")
@@ -312,7 +312,7 @@ def main() -> int:
         print("Beispiel:")
         print("  python dsgvo-pixeler.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt")
         print("Kurz-Erklaerung:")
-        print("  Erkennt Kennzeichen im Video und verpixelt sie fuer Datenschutz.")
+        print("  Erkennt Kennzeichen und Gesichter im Video und verpixelt sie fuer Datenschutz.")
         print("Wichtige Optionen (kurz):")
         print("  --codec hevc|h264     (Standard: hevc)")
         print("  --preset fast|balanced|quality")
@@ -324,14 +324,16 @@ def main() -> int:
         print("  --blocks_faces 24     (Gesichter, groesser = grober)")
         print("  --blocks 16           (deprecated)")
         print("  --pad 20              (Sicherheitsrand)")
-        print("  --no_pixel_zone 0,20,63,100  (optional, x1,x2,y1,y2)")
-        print("  --no_pixel_zone2 78,100,59,100 (optional, x1,x2,y1,y2)")
         print("  --no_pixel_zone_px1 120,1500,900,2160 (Pixel-Zone, x1,y1,x2,y2)")
         print("  --test_minutes 2      (nur erste 2 Minuten verarbeiten)")
         print("  --debug_overlay       (BBox-Overlay fuer Debug)")
-        print("  --no_audio            (Audio entfernen)")
         print("  --debug_zones         (No-Pixel-Zonen rot einzeichnen)")
         print("  --no_audio            (Audio entfernen)")
+        print("  --no_track            (Tracking deaktivieren)")
+        print("  --snapshot_every 5    (Snapshot alle 5 Minuten)")
+        print("  --snapshot_size 1920x1080 (Snapshot-Groesse)")
+        print("  --snapshot_dir /pfad/zu/ordner  (Default: Input-Ordner)")
+        print("  --tiling 2            (2x2 Tiling fuer kleine Kennzeichen, default)")
         print("  --no_plates           (nur Gesichter verpixeln)")
         print("  --no_faces            (nur Kennzeichen verpixeln)")
         print("  --force_sw            (Software-Encoding erzwingen)")
@@ -340,7 +342,6 @@ def main() -> int:
         return 0
     args = parse_args()
     resolve_paths(args)
-    os.makedirs("models", exist_ok=True)
     os.makedirs("models", exist_ok=True)
     os.makedirs(os.path.join("models", "plates"), exist_ok=True)
     os.makedirs(os.path.join("models", "faces"), exist_ok=True)
@@ -372,13 +373,24 @@ def main() -> int:
         print("Gesichts-Modelle nicht gefunden. Bitte .pt Dateien nach models/faces legen oder --faces_weights angeben.", file=sys.stderr)
         return 2
     apply_preset(args)
+    if args.tiling < 1 or args.tiling > 10:
+        print("Ungueltiger Wert fuer --tiling (1-10).", file=sys.stderr)
+        return 2
+    if args.snapshot_every < 0:
+        print("Ungueltiger Wert fuer --snapshot_every.", file=sys.stderr)
+        return 2
     exit_code = 0
 
     if not args.input:
         print("Input fehlt. Bitte --input angeben.", file=sys.stderr)
         return 2
+    run_ts = ""
+    if args.output:
+        run_ts = extract_ts_from_path(args.output)
+    if not run_ts:
+        run_ts = time.strftime("%Y%m%d-%H%M%S")
     if not args.output:
-        args.output = build_output_path(args)
+        args.output = build_output_path(args, run_ts)
 
     for path in plate_models:
         if not os.path.isfile(path):
@@ -447,6 +459,7 @@ def main() -> int:
     cmd = build_ffmpeg_cmd(args.output, args.input, w, h, fps, args.codec, bitrate, use_sw, not args.no_audio)
 
     proc = None
+    aborted = False
     frame_idx = 0
     max_frames = 0
     if args.test_minutes and args.test_minutes > 0:
@@ -454,13 +467,22 @@ def main() -> int:
     if max_frames and total_frames > 0:
         total_frames = min(total_frames, max_frames)
     start_time = time.time()
-    zones = []
-    for zone_arg in [args.no_pixel_zone, args.no_pixel_zone2]:
+    snapshot_count = 0
+    in_base = os.path.splitext(os.path.basename(args.input))[0]
+    snapshot_prefix = f"{in_base}_snap_{run_ts}"
+    next_snapshot_frame = None
+    snap_w = snap_h = 0
+    if args.snapshot_every and args.snapshot_every > 0:
+        if not args.snapshot_dir:
+            args.snapshot_dir = os.path.dirname(args.input) or "."
+        os.makedirs(args.snapshot_dir, exist_ok=True)
         try:
-            zx1p, zx2p, zy1p, zy2p = [float(v) for v in zone_arg.split(",")]
-            zones.append((zx1p, zy1p, zx2p, zy2p))
+            sw, sh = args.snapshot_size.lower().split("x")
+            snap_w, snap_h = int(sw), int(sh)
         except Exception:
-            continue
+            snap_w, snap_h = 1920, 1080
+        next_snapshot_frame = int(fps * 60 * args.snapshot_every)
+    track_notice_printed = False
     zones_px = []
     for zone_arg in [args.no_pixel_zone_px1, args.no_pixel_zone_px2, args.no_pixel_zone_px3, args.no_pixel_zone_px4]:
         try:
@@ -483,59 +505,106 @@ def main() -> int:
                 det_frame = cv2.resize(frame, (args.work_w, new_h), interpolation=cv2.INTER_AREA)
 
             nz_list = []
-            for zx1p, zy1p, zx2p, zy2p in zones:
-                nz_list.append(
-                    (
-                        int(w * (zx1p / 100.0)),
-                        int(h * (zy1p / 100.0)),
-                        int(w * (zx2p / 100.0)),
-                        int(h * (zy2p / 100.0)),
-                    )
-                )
             for zx1, zy1, zx2, zy2 in zones_px:
                 nz_list.append((zx1, zy1, zx2, zy2))
             if args.debug_zones and nz_list:
                 for zx1, zy1, zx2, zy2 in nz_list:
                     cv2.rectangle(frame, (zx1, zy1), (zx2, zy2), (0, 0, 255), 3)
 
-            for model, kind in models:
-                try:
-                    results = model.predict(
-                        det_frame,
-                        conf=args.conf,
-                        imgsz=args.imgsz,
-                        device=args.device,
-                        verbose=False,
-                    )
-                except Exception as e:
-                    if args.device != "cpu":
-                        results = model.predict(
-                            det_frame,
-                            conf=args.conf,
-                            imgsz=args.imgsz,
-                            device="cpu",
-                            verbose=False,
-                        )
-                    else:
-                        raise e
+            det_h, det_w = det_frame.shape[:2]
+            if args.tiling > 1:
+                tile_w = det_w // args.tiling
+                tile_h = det_h // args.tiling
+                tiles = []
+                for ty in range(args.tiling):
+                    y0 = ty * tile_h
+                    y1 = det_h if ty == args.tiling - 1 else (ty + 1) * tile_h
+                    for tx in range(args.tiling):
+                        x0 = tx * tile_w
+                        x1 = det_w if tx == args.tiling - 1 else (tx + 1) * tile_w
+                        tiles.append((x0, y0, x1, y1))
+            else:
+                tiles = [(0, 0, det_w, det_h)]
 
-                boxes = results[0].boxes
-                if boxes is not None and len(boxes) > 0:
-                    for b in boxes:
-                        xyxy = b.xyxy[0].cpu().numpy().astype(int)
-                        x1, y1, x2, y2 = xyxy.tolist()
-                        if scale != 1.0:
-                            x1 = int(x1 / scale)
-                            y1 = int(y1 / scale)
-                            x2 = int(x2 / scale)
-                            y2 = int(y2 / scale)
-                        x1, y1, x2, y2 = apply_pad(x1, y1, x2, y2, args.pad, w, h)
-                        if nz_list and any(boxes_overlap((x1, y1, x2, y2), nz) for nz in nz_list):
-                            continue
-                        blocks_val = args.blocks_faces if kind == "faces" else args.blocks_plates
-                        pixelate_roi(frame, x1, y1, x2, y2, blocks_val)
-                        if args.debug_overlay:
-                            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            use_tracking = (not args.no_track) and args.tiling == 1
+            if args.tiling > 1 and not args.no_track and not track_notice_printed:
+                print("Hinweis: Tracking ist bei Tiling deaktiviert.", file=sys.stderr)
+                track_notice_printed = True
+
+            for x0, y0, x1, y1 in tiles:
+                tile = det_frame[y0:y1, x0:x1]
+                for model, kind in models:
+                    try:
+                        if use_tracking:
+                            results = model.track(
+                                tile,
+                                conf=args.conf,
+                                imgsz=args.imgsz,
+                                device=args.device,
+                                verbose=False,
+                                persist=True,
+                            )
+                        else:
+                            results = model.predict(
+                                tile,
+                                conf=args.conf,
+                                imgsz=args.imgsz,
+                                device=args.device,
+                                verbose=False,
+                            )
+                    except Exception as e:
+                        if args.device != "cpu":
+                            if use_tracking:
+                                results = model.track(
+                                    tile,
+                                    conf=args.conf,
+                                    imgsz=args.imgsz,
+                                    device="cpu",
+                                    verbose=False,
+                                    persist=True,
+                                )
+                            else:
+                                results = model.predict(
+                                    tile,
+                                    conf=args.conf,
+                                    imgsz=args.imgsz,
+                                    device="cpu",
+                                    verbose=False,
+                                )
+                        else:
+                            raise e
+
+                    boxes = results[0].boxes
+                    if boxes is not None and len(boxes) > 0:
+                        for b in boxes:
+                            xyxy = b.xyxy[0].cpu().numpy().astype(int)
+                            bx1, by1, bx2, by2 = xyxy.tolist()
+                            bx1 += x0
+                            by1 += y0
+                            bx2 += x0
+                            by2 += y0
+                            if scale != 1.0:
+                                bx1 = int(bx1 / scale)
+                                by1 = int(by1 / scale)
+                                bx2 = int(bx2 / scale)
+                                by2 = int(by2 / scale)
+                            bx1, by1, bx2, by2 = apply_pad(bx1, by1, bx2, by2, args.pad, w, h)
+                            if nz_list and any(boxes_overlap((bx1, by1, bx2, by2), nz) for nz in nz_list):
+                                continue
+                            blocks_val = args.blocks_faces if kind == "faces" else args.blocks_plates
+                            pixelate_roi(frame, bx1, by1, bx2, by2, blocks_val)
+                            if args.debug_overlay:
+                                cv2.rectangle(frame, (bx1, by1), (bx2, by2), (0, 255, 0), 2)
+
+            if next_snapshot_frame and frame_idx >= next_snapshot_frame:
+                snap = frame
+                if snap_w > 0 and snap_h > 0:
+                    snap = cv2.resize(frame, (snap_w, snap_h), interpolation=cv2.INTER_AREA)
+                snap_ts = int(frame_idx / fps) if fps > 0 else frame_idx
+                snap_name = f"{snapshot_prefix}_{snapshot_count:04d}_{snap_ts:06d}.jpg"
+                cv2.imwrite(os.path.join(args.snapshot_dir, snap_name), snap)
+                snapshot_count += 1
+                next_snapshot_frame += int(fps * 60 * args.snapshot_every)
 
             if proc.stdin is None:
                 raise RuntimeError("ffmpeg stdin nicht verfuegbar")
@@ -551,12 +620,16 @@ def main() -> int:
                     eta_min = eta_sec // 60
                     eta_rem = eta_sec % 60
                     pct = (frame_idx / total_frames) * 100.0
-                    print(f"Processed frames: {frame_idx} | {pct:.1f}% | ETA {eta_min}m {eta_rem}s")
+                    print(f"Processed: {frame_idx} | {pct:.1f}% | ETA {eta_min}m {eta_rem}s | {fps_eff:.2f} fps")
                 else:
                     print(f"Processed frames: {frame_idx}")
             if max_frames and frame_idx >= max_frames:
                 break
 
+    except KeyboardInterrupt:
+        print("Abbruch durch Benutzer (Ctrl+C).", file=sys.stderr)
+        aborted = True
+        exit_code = 130
     except BrokenPipeError:
         print("ffmpeg Pipe abgebrochen", file=sys.stderr)
         exit_code = 3
@@ -575,8 +648,10 @@ def main() -> int:
                 pass
         if proc:
             try:
+                if aborted and proc.poll() is None:
+                    proc.terminate()
                 ret = proc.wait()
-                if ret != 0:
+                if ret != 0 and not aborted:
                     print(f"ffmpeg exit code: {ret}", file=sys.stderr)
                     exit_code = 3
             except Exception:
@@ -605,6 +680,11 @@ def main() -> int:
             targets.append(f"Extra({len(extra_models)})")
         print(f"Objekte: {', '.join(targets) if targets else 'keine'}")
         print(f"Encoder: {args.codec}{' (SW)' if use_sw else ' (HW)'}")
+        print(f"Audio: {'aus' if args.no_audio else 'an'}")
+        print(f"Tracking: {'aus' if args.no_track else 'an'}")
+        print(f"Tiling: {args.tiling}x{args.tiling}")
+        if snapshot_count:
+            print(f"Snapshots: {snapshot_count} ({args.snapshot_dir})")
         print(f"Dauer: {proc_min}m {proc_sec}s")
     return exit_code
 

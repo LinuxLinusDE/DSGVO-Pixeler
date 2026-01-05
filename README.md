@@ -43,7 +43,58 @@ If you start without parameters, the program shows a short, easy help message.
 - Default: all `.pt` files in `models/faces/`.
 - Alternatively: `--faces_weights models/faces/a.pt,models/faces/b.pt`
 
-## Examples
+## Functions
+Core features and what the script does in the background:
+
+Detection
+- Plates + faces by default (YOLOv8). Can be disabled with `--no_plates` or `--no_faces`.
+- Uses all `.pt` models in `models/plates/` and `models/faces/` by default.
+
+Pixelation
+- True mosaic pixelation (not blur).
+- Separate pixel strength for plates and faces: `--blocks_plates`, `--blocks_faces`.
+- Optional padding around boxes: `--pad`.
+
+Tiling
+- `--tiling N` splits each frame into an NxN grid to improve detection of small objects.
+- Tiling increases processing time and disables tracking. Default is 2x2.
+
+Tracking
+- Enabled by default to reduce flicker. Disable with `--no_track`.
+- When tiling is active, tracking is turned off.
+
+No‑pixel zones
+- Pixel zones: `--no_pixel_zone_px1..4` (x1,y1,x2,y2 in pixels).
+- `--debug_zones` draws these zones in red.
+
+Snapshots
+- `--snapshot_every` saves JPEG snapshots every N minutes (stored next to the input video by default).
+- `--snapshot_size` controls resolution (e.g. 1920x1080). Snapshot filenames include the same timestamp as the output video.
+- `--snapshot_dir` sets the output folder (default: same folder as the input video).
+
+Performance
+- `--work_w` runs detection on a smaller width for speed.
+- `--imgsz` controls YOLO inference size.
+
+Encoding and audio
+- Video is encoded via ffmpeg (VideoToolbox on macOS, CPU fallback with `--force_sw`).
+- `--no_audio` removes the audio track.
+- `--bitrate auto` uses ffprobe to match input bitrate; otherwise use a fixed value.
+- `-movflags +faststart` enables fast streaming start.
+
+Logging
+- Progress output includes % and ETA, plus effective FPS.
+- Summary at the end shows resolution, bitrate, encoder, audio, tracking, tiling, and model counts.
+
+## Tiling
+Tiling splits each frame into smaller tiles (e.g. 2x2). This improves detection of very small plates in 4K+ footage, but it increases processing time because YOLO runs on every tile.
+
+Note: Tiling can make processing much slower. Example (MacBook M4, 5760x3240 @ 29.97 fps): 1798 frames (~59s of video) took 9m 36s with 2x2 tiling.
+
+Tip: for quick tests, use `--test_minutes 1`, `--preset fast`, or set `--tiling 1`.
+
+Note: snapshots add a small amount of CPU and disk I/O; for YouTube thumbnails this is usually negligible.
+
 HEVC default (4K, MPS, audio is preserved):
 ```bash
 python dsgvo-pixeler.py \
@@ -113,6 +164,11 @@ Use extra models:
 python dsgvo-pixeler.py --input input.mp4 --use_extra
 ```
 
+Tiling for small plates (2x2, default):
+```bash
+python dsgvo-pixeler.py --input input.mp4 --tiling 2
+```
+
 Define pixel zones and show them:
 ```bash
 python dsgvo-pixeler.py \
@@ -127,6 +183,11 @@ Test run (first 2 minutes, debug overlay):
 python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 ```
 
+Snapshots every 5 minutes (Full HD):
+```bash
+python dsgvo-pixeler.py --input input.mp4 --snapshot_every 5 --snapshot_size 1920x1080
+```
+
 ## Key parameters
 - `work_w`: detection width (e.g. 1280 or 1920). 0 = original resolution.
 - `imgsz`: YOLO inference size (larger = better detection, slower).
@@ -135,8 +196,6 @@ python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 - `blocks_faces`: pixel block size for faces (larger = coarser).
 - `blocks`: deprecated alias for `blocks_plates`.
 - `pad`: safety padding around each box (pixels).
-- `no_pixel_zone`: no-pixel zone as `x1,x2,y1,y2` in percent (default: off). Example: `0,20,63,100` for bottom-left HUD.
-- `no_pixel_zone2`: second no-pixel zone (default: off). Example: `78,100,59,100` for bottom-right HUD.
 - `no_pixel_zone_px1..4`: up to four pixel zones as `x1,y1,x2,y2` (top-left -> bottom-right).
 - Tip: You can find pixel coordinates here: https://imageonline.io/find-coordinates-of-image/ or https://get-image-coordinates.vercel.app/
 - `force_sw`: force software encoding.
@@ -145,6 +204,11 @@ python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
 - `debug_overlay`: draws boxes for verification.
 - `debug_zones`: draws the no-pixel zones in red.
 - `no_audio`: remove the audio track in the output.
+- `no_track`: disable tracking (tracking is on by default).
+- `tiling`: split the frame into tiles for small objects (1-10, default 2).
+- `snapshot_every`: save a snapshot every N minutes (0 = off).
+- `snapshot_dir`: output folder for snapshots (default: input folder).
+- `snapshot_size`: snapshot size, e.g. 1920x1080.
 - `bitrate`: default is `auto` (uses input bitrate), or set e.g. `50M`.
 - `faces_weights`: list of face models (default: all in `models/faces/`).
 - `weights`: list of plate models (default: all in `models/plates/`).
@@ -162,6 +226,15 @@ Tip: If `models/plates/` contains models and you forget `--weights`, they will b
 ## FAQ
 Are multiple models processed in parallel?
 No, they run sequentially (more stable and often faster).
+
+Is tracking enabled by default?
+Yes. Disable it with `--no_track` if you prefer raw detections.
+
+Why is tracking disabled when tiling is enabled?
+Tracking across tiles is unreliable because object IDs cannot be matched consistently between tiles. The tool disables tracking for tiling to avoid unstable results.
+
+What is the default tiling value?
+`--tiling` defaults to `2` (2x2 tiling).
 
 ## Insta360 note
 Recommendation: reframe/flat export to 16:9 in Insta360 Studio first, then pixelate.
