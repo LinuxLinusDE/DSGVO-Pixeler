@@ -192,3 +192,6 @@ ffmpeg -i input.mp4 -vsync cfr -r 25 -c:v libx264 -c:a copy normalized.mp4
 
 ## Datenschutz-Hinweis
 Ziel ist Unlesbarkeit. Nutze grobe Pixel (`blocks` klein) und ausreichend `pad`, damit nichts uebersehen wird.
+
+## Lizenz und ffmpeg
+DSGVO-Pixeler steht unter der MIT-Lizenz. ffmpeg ist eine externe Abhaengigkeit und wird nicht mitgeliefert. Bitte installiere ffmpeg separat und beachte dessen Lizenzbedingungen (LGPL/GPL je nach Build).

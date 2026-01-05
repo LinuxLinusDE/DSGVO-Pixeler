@@ -184,3 +184,6 @@ ffmpeg -i input.mp4 -vsync cfr -r 25 -c:v libx264 -c:a copy normalized.mp4
 
 ## Privacy note
 Goal is unreadability. Use coarse pixels (`blocks` small) and sufficient `pad` so nothing is missed.
+
+## License and ffmpeg
+DSGVO-Pixeler is released under MIT. ffmpeg is an external dependency and is not distributed with this project. Please install ffmpeg separately and follow its license terms (LGPL/GPL depending on your build).
