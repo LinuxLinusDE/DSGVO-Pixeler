@@ -39,6 +39,8 @@ Example anonymization output:
 ![DSGVO-Pixeler example 1](misc/dsgvo-pixeler-1.png)
 ![DSGVO-Pixeler example 2](misc/dsgvo-pixeler-2.png)
 
+Note: the green boxes show detected objects and the red boxes show no-pixel zones; these overlays are optional and only appear when `--debug_pixel` and `--debug_no_pixel` are enabled.
+
 ## Where do I get `models/plates/best.pt` (plates)?
 - Train your own YOLOv8 license plate model and export it as `.pt`.
 - Use an existing license plate detection model from a trusted source (check license and privacy).
