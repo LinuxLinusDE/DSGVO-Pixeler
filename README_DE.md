@@ -245,27 +245,28 @@ python dsgvo-pixeler.py \
 ```
 
 ## Wichtige Parameter
-- `work_w`: Arbeitsbreite fuer Detektion (z. B. 1280 oder 1920). 0 = Originalaufloesung.
-- `imgsz`: YOLO Inferenzgroesse (groesser = bessere Erkennung, aber langsamer).
-- `conf`: Confidence Threshold (niedriger = mehr Treffer).
-- `blocks_plates`: Pixelblock-Groesse fuer Kennzeichen (groesser = grober).
-- `blocks_faces`: Pixelblock-Groesse fuer Gesichter (groesser = grober).
-- `blocks`: deprecatedes Alias fuer `blocks_plates`.
-- `pad`: Sicherheitsrand in Pixeln um jede Box.
+- `work_w`: Arbeitsbreite fuer Detektion (0 = Originalaufloesung). Default: 1920. Empfohlen: 0-3840.
+- `imgsz`: YOLO Inferenzgroesse (groesser = bessere Erkennung, aber langsamer). Default: 1280. Empfohlen: 640-2048.
+- `conf`: Confidence Threshold (niedriger = mehr Treffer). Default: 0.25. Empfohlen: 0.1-0.6.
+- `blocks_plates`: Pixelblock-Groesse fuer Kennzeichen (groesser = grober). Default: 16. Empfohlen: 4-64.
+- `blocks_faces`: Pixelblock-Groesse fuer Gesichter (groesser = grober). Default: 24. Empfohlen: 4-64.
+- `blocks`: deprecatedes Alias fuer `blocks_plates`. Empfohlen: 4-64.
+- `pad`: Sicherheitsrand in Pixeln um jede Box. Default: 20. Empfohlen: 0-100.
 - `no_pixel_zone_px1..4`: Bis zu vier No-Pixel-Zonen in Pixeln als `x1,y1,x2,y2` (oben links -> unten rechts).
 - Tipp: Koordinaten fuer Pixel-Zonen kannst du z. B. hier bestimmen: https://imageonline.io/find-coordinates-of-image/ oder https://get-image-coordinates.vercel.app/
 - `force_sw`: Software-Encoding erzwingen (nuetzlich, wenn VideoToolbox zickt).
-- `test_minutes`: Nur die ersten N Minuten verarbeiten (0 = alles).
+- `test_minutes`: Nur die ersten N Minuten verarbeiten (0 = alles). Default: 0. Empfohlen: 0-60.
 - `preset`: `fast`, `balanced`, `quality` fuer einfache Speed/Qualitaets-Wahl.
 - `debug_pixel`: Zeichnet gruene Boxen zur Kontrolle ins Video.
 - `debug_no_pixel`: Zeichnet die No-Pixel-Zonen rot ins Video.
 - `no_audio`: Entfernt die Audiospur im Output.
 - `no_track`: Tracking deaktivieren (Tracking ist standardmaessig aktiv).
-- `tiling`: Frame in Kacheln teilen fuer kleine Objekte (1-10, Default 2).
-- `snapshot_every`: Snapshot alle N Minuten speichern (0 = aus).
+- `tiling`: Frame in Kacheln teilen fuer kleine Objekte (1-10). Default: 2. Empfohlen: 1-4.
+- `snapshot_every`: Snapshot alle N Minuten speichern (0 = aus). Default: 0. Empfohlen: 0-60.
 - `snapshot_dir`: Ausgabeordner fuer Snapshots (Default: Input-Ordner).
 - `snapshot_size`: Snapshot-Groesse, z. B. 1920x1080.
 - `bitrate`: Standard ist `auto` (uebernimmt Bitrate vom Input), alternativ z. B. `50M`.
+- `log_every`: Log-Ausgabe alle N Frames. Default: 200. Empfohlen: 50-1000.
 - `faces_weights`: Liste der Gesichtsmodelle (Default: alle in `models/faces/`).
 - `weights`: Liste der Kennzeichenmodelle (Default: alle in `models/plates/`).
 - `extra_weights`: Liste zusaetzlicher Modelle (oder `--use_extra` fuer `models/extra/`).

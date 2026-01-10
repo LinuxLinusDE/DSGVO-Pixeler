@@ -5,7 +5,7 @@ import re
 import subprocess
 import sys
 import time
-from typing import Dict, Tuple
+from typing import Tuple
 
 try:
     import cv2
@@ -165,8 +165,19 @@ def probe_bitrate(input_path: str) -> str:
     return "50M"
 
 
+PRESETS = {
+    "fast": {"conf": 0.3, "imgsz": 960, "work_w": 1280, "blocks_plates": 16, "blocks_faces": 24, "pad": 20, "bitrate": "auto"},
+    "balanced": {"conf": 0.25, "imgsz": 1280, "work_w": 1920, "blocks_plates": 16, "blocks_faces": 24, "pad": 20, "bitrate": "auto"},
+    "quality": {"conf": 0.2, "imgsz": 1600, "work_w": 0, "blocks_plates": 16, "blocks_faces": 24, "pad": 24, "bitrate": "auto"},
+}
+
+
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Kennzeichen in Videos erkennen und verpixeln (Apple Silicon/MPS).")
+    balanced = PRESETS["balanced"]
+    p = argparse.ArgumentParser(
+        description="Kennzeichen in Videos erkennen und verpixeln (Apple Silicon/MPS).",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     p.add_argument("--input", help="Input-Video (MP4)")
     p.add_argument("--output", help="Output-Video (MP4)")
     p.add_argument("--weights", help="YOLOv8 plates weights (Liste mit Komma)")
@@ -174,15 +185,54 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--extra_weights", help="Zusatz-Modelle (Liste mit Komma)")
     p.add_argument("--use_extra", action="store_true", help="models/extra/*.pt mitnutzen")
     p.add_argument("--device", default="mps", help="Ultralytics device, z.B. mps oder cpu")
-    p.add_argument("--conf", type=float, default=None, help="Confidence Threshold")
-    p.add_argument("--imgsz", type=int, default=None, help="YOLO imgsz")
-    p.add_argument("--work_w", type=int, default=None, help="Arbeitsbreite fuer Detektion (0 = Original)")
-    p.add_argument("--blocks", type=int, default=None, help="Pixel-Blockgroesse (deprecated, groesser = grober)")
-    p.add_argument("--blocks_plates", type=int, default=None, help="Pixel-Blockgroesse fuer Kennzeichen (groesser = grober)")
-    p.add_argument("--blocks_faces", type=int, default=None, help="Pixel-Blockgroesse fuer Gesichter (groesser = grober)")
-    p.add_argument("--pad", type=int, default=None, help="Sicherheitsrand in Pixel")
+    p.add_argument(
+        "--conf",
+        type=float,
+        default=None,
+        help=f"Confidence Threshold. Default (preset balanced): {balanced['conf']}. Empfohlen: 0.1-0.6",
+    )
+    p.add_argument(
+        "--imgsz",
+        type=int,
+        default=None,
+        help=f"YOLO imgsz. Default (preset balanced): {balanced['imgsz']}. Empfohlen: 640-2048",
+    )
+    p.add_argument(
+        "--work_w",
+        type=int,
+        default=None,
+        help=f"Arbeitsbreite fuer Detektion (0 = Original). Default (preset balanced): {balanced['work_w']}. Empfohlen: 0-3840",
+    )
+    p.add_argument(
+        "--blocks",
+        type=int,
+        default=None,
+        help="Pixel-Blockgroesse (deprecated, groesser = grober). Empfohlen: 4-64",
+    )
+    p.add_argument(
+        "--blocks_plates",
+        type=int,
+        default=None,
+        help=f"Pixel-Blockgroesse fuer Kennzeichen (groesser = grober). Default (preset balanced): {balanced['blocks_plates']}. Empfohlen: 4-64",
+    )
+    p.add_argument(
+        "--blocks_faces",
+        type=int,
+        default=None,
+        help=f"Pixel-Blockgroesse fuer Gesichter (groesser = grober). Default (preset balanced): {balanced['blocks_faces']}. Empfohlen: 4-64",
+    )
+    p.add_argument(
+        "--pad",
+        type=int,
+        default=None,
+        help=f"Sicherheitsrand in Pixel. Default (preset balanced): {balanced['pad']}. Empfohlen: 0-100",
+    )
     p.add_argument("--codec", choices=["hevc", "h264"], default="hevc", help="Video codec")
-    p.add_argument("--bitrate", default=None, help="Video bitrate, z.B. 50M oder auto")
+    p.add_argument(
+        "--bitrate",
+        default=None,
+        help=f"Video bitrate, z.B. 50M oder auto. Default (preset balanced): {balanced['bitrate']}",
+    )
     p.add_argument(
         "--preset",
         choices=["fast", "balanced", "quality"],
@@ -194,16 +244,36 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--debug_overlay", dest="debug_pixel", action="store_true", help=argparse.SUPPRESS)
     p.add_argument("--no_audio", action="store_true", help="Audio entfernen")
     p.add_argument("--no_track", action="store_true", help="Tracking deaktivieren")
-    p.add_argument("--snapshot_every", type=int, default=0, help="Snapshot alle N Minuten (0 = aus)")
+    p.add_argument(
+        "--snapshot_every",
+        type=int,
+        default=0,
+        help="Snapshot alle N Minuten (0 = aus). Empfohlen: 0-60",
+    )
     p.add_argument("--snapshot_dir", default="", help="Snapshot-Ordner (Default: Input-Ordner)")
     p.add_argument("--snapshot_size", default="1920x1080", help="Snapshot-Groesse, z.B. 1920x1080")
     p.add_argument("--debug_no_pixel", dest="debug_no_pixel", action="store_true", help="No-Pixel-Zonen rot einzeichnen")
     p.add_argument("--debug_zones", dest="debug_no_pixel", action="store_true", help=argparse.SUPPRESS)
     p.add_argument("--no_plates", action="store_true", help="Kennzeichen-Erkennung deaktivieren")
     p.add_argument("--no_faces", action="store_true", help="Gesichts-Erkennung deaktivieren")
-    p.add_argument("--tiling", type=int, default=2, help="Tiling fuer kleine Objekte (1-10, 1 = aus)")
-    p.add_argument("--test_minutes", type=int, default=0, help="Nur die ersten N Minuten verarbeiten (0 = alles)")
-    p.add_argument("--log_every", type=int, default=200, help="Log alle n Frames")
+    p.add_argument(
+        "--tiling",
+        type=int,
+        default=2,
+        help="Tiling fuer kleine Objekte (1-10, 1 = aus). Empfohlen: 1-4",
+    )
+    p.add_argument(
+        "--test_minutes",
+        type=int,
+        default=0,
+        help="Nur die ersten N Minuten verarbeiten (0 = alles). Empfohlen: 0-60",
+    )
+    p.add_argument(
+        "--log_every",
+        type=int,
+        default=200,
+        help="Log alle n Frames. Empfohlen: 50-1000",
+    )
     p.add_argument(
         "--no_pixel_zone_px1",
         default="",
@@ -261,12 +331,7 @@ def parse_model_list(value: str) -> list:
 
 
 def apply_preset(args: argparse.Namespace) -> None:
-    presets: Dict[str, Dict[str, object]] = {
-        "fast": {"conf": 0.3, "imgsz": 960, "work_w": 1280, "blocks_plates": 16, "blocks_faces": 24, "pad": 20, "bitrate": "auto"},
-        "balanced": {"conf": 0.25, "imgsz": 1280, "work_w": 1920, "blocks_plates": 16, "blocks_faces": 24, "pad": 20, "bitrate": "auto"},
-        "quality": {"conf": 0.2, "imgsz": 1600, "work_w": 0, "blocks_plates": 16, "blocks_faces": 24, "pad": 24, "bitrate": "auto"},
-    }
-    preset = presets.get(args.preset, presets["balanced"])
+    preset = PRESETS.get(args.preset, PRESETS["balanced"])
     if args.conf is None:
         args.conf = float(preset["conf"])
     if args.imgsz is None:

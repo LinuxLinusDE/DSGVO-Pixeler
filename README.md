@@ -237,27 +237,28 @@ python dsgvo-pixeler.py \
 ```
 
 ## Key parameters
-- `work_w`: detection width (e.g. 1280 or 1920). 0 = original resolution.
-- `imgsz`: YOLO inference size (larger = better detection, slower).
-- `conf`: confidence threshold (lower = more detections).
-- `blocks_plates`: pixel block size for plates (larger = coarser).
-- `blocks_faces`: pixel block size for faces (larger = coarser).
-- `blocks`: deprecated alias for `blocks_plates`.
-- `pad`: safety padding around each box (pixels).
+- `work_w`: detection width (0 = original resolution). Default: 1920. Recommended: 0-3840.
+- `imgsz`: YOLO inference size (larger = better detection, slower). Default: 1280. Recommended: 640-2048.
+- `conf`: confidence threshold (lower = more detections). Default: 0.25. Recommended: 0.1-0.6.
+- `blocks_plates`: pixel block size for plates (larger = coarser). Default: 16. Recommended: 4-64.
+- `blocks_faces`: pixel block size for faces (larger = coarser). Default: 24. Recommended: 4-64.
+- `blocks`: deprecated alias for `blocks_plates`. Recommended: 4-64.
+- `pad`: safety padding around each box (pixels). Default: 20. Recommended: 0-100.
 - `no_pixel_zone_px1..4`: up to four pixel zones as `x1,y1,x2,y2` (top-left -> bottom-right).
 - Tip: You can find pixel coordinates here: https://imageonline.io/find-coordinates-of-image/ or https://get-image-coordinates.vercel.app/
 - `force_sw`: force software encoding.
-- `test_minutes`: process only the first N minutes (0 = full video).
+- `test_minutes`: process only the first N minutes (0 = full video). Default: 0. Recommended: 0-60.
 - `preset`: `fast`, `balanced`, `quality` for quick speed/quality choice.
 - `debug_pixel`: draws green boxes for verification.
 - `debug_no_pixel`: draws the no-pixel zones in red.
 - `no_audio`: remove the audio track in the output.
 - `no_track`: disable tracking (tracking is on by default).
-- `tiling`: split the frame into tiles for small objects (1-10, default 2).
-- `snapshot_every`: save a snapshot every N minutes (0 = off).
+- `tiling`: split the frame into tiles for small objects (1-10). Default: 2. Recommended: 1-4.
+- `snapshot_every`: save a snapshot every N minutes (0 = off). Default: 0. Recommended: 0-60.
 - `snapshot_dir`: output folder for snapshots (default: input folder).
 - `snapshot_size`: snapshot size, e.g. 1920x1080.
 - `bitrate`: default is `auto` (uses input bitrate), or set e.g. `50M`.
+- `log_every`: log output every N frames. Default: 200. Recommended: 50-1000.
 - `faces_weights`: list of face models (default: all in `models/faces/`).
 - `weights`: list of plate models (default: all in `models/plates/`).
 - `extra_weights`: list of extra models (or `--use_extra` for `models/extra/`).
