@@ -236,6 +236,13 @@ python dsgvo-pixeler.py \
   --snapshot_size 1920x1080
 ```
 
+Save a preset next to the output, then reuse it for another video:
+```bash
+python dsgvo-pixeler.py --input source.mp4 --save_preset json
+python dsgvo-pixeler.py --input another.mp4 --load_preset source_preset
+```
+Preset names are derived from the input filename (e.g. `source.mp4` -> `source_preset.json`).
+
 ## Key parameters
 - `work_w`: detection width (0 = original resolution). Default: 1920. Recommended: 0-3840.
 - `imgsz`: YOLO inference size (larger = better detection, slower). Default: 1280. Recommended: 640-2048.
@@ -259,6 +266,8 @@ python dsgvo-pixeler.py \
 - `snapshot_size`: snapshot size, e.g. 1920x1080.
 - `bitrate`: default is `auto` (uses input bitrate), or set e.g. `50M`.
 - `log_every`: log output every N frames. Default: 200. Recommended: 50-1000.
+- `save_preset`: save used parameters in the output folder as `*_preset.json`/`.txt`.
+- `load_preset`: load a preset JSON by file path or name (relative to input/output folder).
 - `faces_weights`: list of face models (default: all in `models/faces/`).
 - `weights`: list of plate models (default: all in `models/plates/`).
 - `extra_weights`: list of extra models (or `--use_extra` for `models/extra/`).

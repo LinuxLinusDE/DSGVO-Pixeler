@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -275,6 +276,17 @@ def parse_args() -> argparse.Namespace:
         help="Log alle n Frames. Empfohlen: 50-1000",
     )
     p.add_argument(
+        "--save_preset",
+        choices=["off", "json", "txt", "both"],
+        default="off",
+        help="Speichert verwendete Parameter als Preset im Output-Ordner.",
+    )
+    p.add_argument(
+        "--load_preset",
+        default="",
+        help="Lade Preset (JSON) per Dateipfad oder Namen.",
+    )
+    p.add_argument(
         "--no_pixel_zone_px1",
         default="",
         help="No-Pixel-Zone in Pixeln als x1,y1,x2,y2 (z.B. 120,1500,900,2160). Leer = aus",
@@ -347,6 +359,130 @@ def apply_preset(args: argparse.Namespace) -> None:
     if args.bitrate is None:
         args.bitrate = str(preset["bitrate"])
 
+
+def preset_base_name(args: argparse.Namespace) -> str:
+    source = args.input or args.output or "preset"
+    base = os.path.splitext(os.path.basename(source))[0]
+    return f"{base}_preset"
+
+
+def arg_provided(flag: str) -> bool:
+    for arg in sys.argv[1:]:
+        if arg == flag or arg.startswith(f"{flag}="):
+            return True
+    return False
+
+
+def load_preset_file(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict) and "params" in data and isinstance(data["params"], dict):
+        return data["params"]
+    if isinstance(data, dict):
+        return data
+    raise ValueError("Preset JSON hat kein gueltiges Format.")
+
+
+def apply_loaded_preset(args: argparse.Namespace, params: dict) -> None:
+    field_map = {
+        "weights": "--weights",
+        "faces_weights": "--faces_weights",
+        "extra_weights": "--extra_weights",
+        "use_extra": "--use_extra",
+        "device": "--device",
+        "conf": "--conf",
+        "imgsz": "--imgsz",
+        "work_w": "--work_w",
+        "blocks": "--blocks",
+        "blocks_plates": "--blocks_plates",
+        "blocks_faces": "--blocks_faces",
+        "pad": "--pad",
+        "codec": "--codec",
+        "bitrate": "--bitrate",
+        "preset": "--preset",
+        "force_sw": "--force_sw",
+        "debug_pixel": "--debug_pixel",
+        "debug_no_pixel": "--debug_no_pixel",
+        "no_audio": "--no_audio",
+        "no_track": "--no_track",
+        "snapshot_every": "--snapshot_every",
+        "snapshot_dir": "--snapshot_dir",
+        "snapshot_size": "--snapshot_size",
+        "no_plates": "--no_plates",
+        "no_faces": "--no_faces",
+        "tiling": "--tiling",
+        "test_minutes": "--test_minutes",
+        "log_every": "--log_every",
+        "no_pixel_zone_px1": "--no_pixel_zone_px1",
+        "no_pixel_zone_px2": "--no_pixel_zone_px2",
+        "no_pixel_zone_px3": "--no_pixel_zone_px3",
+        "no_pixel_zone_px4": "--no_pixel_zone_px4",
+    }
+    for key, flag in field_map.items():
+        if key not in params:
+            continue
+        if arg_provided(flag):
+            continue
+        setattr(args, key, params[key])
+
+
+def save_preset_files(args: argparse.Namespace) -> None:
+    if args.save_preset == "off":
+        return
+    preset_name = preset_base_name(args)
+    output_dir = os.path.dirname(args.output) or "."
+    os.makedirs(output_dir, exist_ok=True)
+    params = {
+        "weights": args.weights,
+        "faces_weights": args.faces_weights,
+        "extra_weights": args.extra_weights,
+        "use_extra": args.use_extra,
+        "device": args.device,
+        "conf": args.conf,
+        "imgsz": args.imgsz,
+        "work_w": args.work_w,
+        "blocks": args.blocks,
+        "blocks_plates": args.blocks_plates,
+        "blocks_faces": args.blocks_faces,
+        "pad": args.pad,
+        "codec": args.codec,
+        "bitrate": args.bitrate,
+        "preset": args.preset,
+        "force_sw": args.force_sw,
+        "debug_pixel": args.debug_pixel,
+        "debug_no_pixel": args.debug_no_pixel,
+        "no_audio": args.no_audio,
+        "no_track": args.no_track,
+        "snapshot_every": args.snapshot_every,
+        "snapshot_dir": args.snapshot_dir,
+        "snapshot_size": args.snapshot_size,
+        "no_plates": args.no_plates,
+        "no_faces": args.no_faces,
+        "tiling": args.tiling,
+        "test_minutes": args.test_minutes,
+        "log_every": args.log_every,
+        "no_pixel_zone_px1": args.no_pixel_zone_px1,
+        "no_pixel_zone_px2": args.no_pixel_zone_px2,
+        "no_pixel_zone_px3": args.no_pixel_zone_px3,
+        "no_pixel_zone_px4": args.no_pixel_zone_px4,
+    }
+    if args.save_preset in ("json", "both"):
+        json_path = os.path.join(output_dir, f"{preset_name}.json")
+        payload = {
+            "preset_name": preset_name,
+            "created": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "params": params,
+        }
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=True)
+    if args.save_preset in ("txt", "both"):
+        txt_path = os.path.join(output_dir, f"{preset_name}.txt")
+        with open(txt_path, "w", encoding="utf-8") as f:
+            f.write(f"preset_name: {preset_name}\n")
+            f.write(f"created: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            for key, value in sorted(params.items()):
+                f.write(f"{key}: {value}\n")
+
 def extract_ts_from_path(path: str) -> str:
     m = re.search(r"\d{8}-\d{6}", os.path.basename(path))
     return m.group(0) if m else ""
@@ -409,6 +545,23 @@ def main() -> int:
         return 0
     args = parse_args()
     resolve_paths(args)
+    if args.load_preset:
+        preset_path = args.load_preset
+        if not os.path.isfile(preset_path):
+            base_dir = os.path.dirname(args.output or args.input or "") or "."
+            if not preset_path.endswith(".json"):
+                preset_path = os.path.join(base_dir, f"{preset_path}.json")
+            else:
+                preset_path = os.path.join(base_dir, preset_path)
+        if not os.path.isfile(preset_path):
+            print(f"Preset-Datei nicht gefunden: {preset_path}", file=sys.stderr)
+            return 2
+        try:
+            preset_params = load_preset_file(preset_path)
+        except Exception as e:
+            print(f"Preset konnte nicht geladen werden: {e}", file=sys.stderr)
+            return 2
+        apply_loaded_preset(args, preset_params)
     os.makedirs("models", exist_ok=True)
     os.makedirs(os.path.join("models", "plates"), exist_ok=True)
     os.makedirs(os.path.join("models", "faces"), exist_ok=True)
@@ -458,6 +611,7 @@ def main() -> int:
         run_ts = time.strftime("%Y%m%d-%H%M%S")
     if not args.output:
         args.output = build_output_path(args, run_ts)
+    save_preset_files(args)
 
     for path in plate_models:
         if not os.path.isfile(path):

@@ -244,6 +244,13 @@ python dsgvo-pixeler.py \
   --snapshot_size 1920x1080
 ```
 
+Preset im Output-Ordner speichern und fuer ein anderes Video wiederverwenden:
+```bash
+python dsgvo-pixeler.py --input source.mp4 --save_preset json
+python dsgvo-pixeler.py --input another.mp4 --load_preset source_preset
+```
+Preset-Namen leiten sich vom Input-Dateinamen ab (z. B. `source.mp4` -> `source_preset.json`).
+
 ## Wichtige Parameter
 - `work_w`: Arbeitsbreite fuer Detektion (0 = Originalaufloesung). Default: 1920. Empfohlen: 0-3840.
 - `imgsz`: YOLO Inferenzgroesse (groesser = bessere Erkennung, aber langsamer). Default: 1280. Empfohlen: 640-2048.
@@ -267,6 +274,8 @@ python dsgvo-pixeler.py \
 - `snapshot_size`: Snapshot-Groesse, z. B. 1920x1080.
 - `bitrate`: Standard ist `auto` (uebernimmt Bitrate vom Input), alternativ z. B. `50M`.
 - `log_every`: Log-Ausgabe alle N Frames. Default: 200. Empfohlen: 50-1000.
+- `save_preset`: Speichert verwendete Parameter im Output-Ordner als `*_preset.json`/`.txt`.
+- `load_preset`: Preset-JSON per Dateipfad oder Name laden (relativ zu Input/Output-Ordner).
 - `faces_weights`: Liste der Gesichtsmodelle (Default: alle in `models/faces/`).
 - `weights`: Liste der Kennzeichenmodelle (Default: alle in `models/plates/`).
 - `extra_weights`: Liste zusaetzlicher Modelle (oder `--use_extra` fuer `models/extra/`).
