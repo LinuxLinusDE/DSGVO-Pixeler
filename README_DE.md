@@ -33,6 +33,12 @@ Hinweis: `--output` ist optional. Wenn du es weglasst, wird die Datei automatisc
 
 Wenn du ohne Parameter startest, zeigt das Programm eine kurze, leicht verstaendliche Hilfe an.
 
+## Screenshots
+Beispielhafte Ausgabe der Anonymisierung:
+
+![DSGVO-Pixeler Beispiel 1](misc/dsgvo-pixeler-1.png)
+![DSGVO-Pixeler Beispiel 2](misc/dsgvo-pixeler-2.png)
+
 ## Woher bekomme ich `models/plates/best.pt` (Kennzeichen)?
 - Trainiere ein eigenes YOLOv8-Kennzeichenmodell und exportiere es als `.pt`.
 - Nutze ein bestehendes Kennzeichen-Detektionsmodell von einem vertrauenswuerdigen Anbieter (achte auf Lizenz und Datenschutz).

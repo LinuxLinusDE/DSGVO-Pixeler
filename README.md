@@ -33,6 +33,12 @@ Note: `--output` is optional. If omitted, the file is created in the same folder
 
 If you start without parameters, the program shows a short, easy help message.
 
+## Screenshots
+Example anonymization output:
+
+![DSGVO-Pixeler example 1](misc/dsgvo-pixeler-1.png)
+![DSGVO-Pixeler example 2](misc/dsgvo-pixeler-2.png)
+
 ## Where do I get `models/plates/best.pt` (plates)?
 - Train your own YOLOv8 license plate model and export it as `.pt`.
 - Use an existing license plate detection model from a trusted source (check license and privacy).
