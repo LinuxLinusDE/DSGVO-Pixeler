@@ -188,6 +188,54 @@ Snapshots every 5 minutes (Full HD):
 python dsgvo-pixeler.py --input input.mp4 --snapshot_every 5 --snapshot_size 1920x1080
 ```
 
+Examples from real-world workflows
+
+Minimal run with defaults (weights auto-detected from `models/plates/`/`models/faces/`):
+```bash
+python dsgvo-pixeler.py --input source.mp4
+```
+
+Fast test run with two no-pixel zones and visual debugging (1 minute only):
+```bash
+python dsgvo-pixeler.py \
+  --input source.mp4 \
+  --preset fast \
+  --no_pixel_zone_px1 990,2796,1382,3211 \
+  --no_pixel_zone_px2 368,3026,616,3118 \
+  --test_minutes 1 \
+  --debug_overlay \
+  --debug_zones
+```
+
+Longer test with snapshots and tiling, plus audio removed (5 minutes):
+```bash
+python dsgvo-pixeler.py \
+  --input source.mp4 \
+  --preset fast \
+  --no_pixel_zone_px1 990,2796,1382,3211 \
+  --no_pixel_zone_px2 368,3026,616,3118 \
+  --test_minutes 5 \
+  --no_audio \
+  --debug_overlay \
+  --debug_zones \
+  --tiling 1 \
+  --snapshot_every 1 \
+  --snapshot_size 1920x1080
+```
+
+Quick snapshot + debug run without no-pixel zones (1 minute):
+```bash
+python dsgvo-pixeler.py \
+  --input source.mp4 \
+  --preset fast \
+  --test_minutes 1 \
+  --no_audio \
+  --debug_overlay \
+  --tiling 1 \
+  --snapshot_every 1 \
+  --snapshot_size 1920x1080
+```
+
 ## Key parameters
 - `work_w`: detection width (e.g. 1280 or 1920). 0 = original resolution.
 - `imgsz`: YOLO inference size (larger = better detection, slower).
