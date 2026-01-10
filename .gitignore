@@ -16,6 +16,9 @@ venv/
 # Ultralytics cache
 .ultralytics/
 
+# Model files (keep folders, ignore weights)
+models/**/*.pt
+
 lst.txt
 
 # User-specific files
