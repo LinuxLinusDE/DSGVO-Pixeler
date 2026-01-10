@@ -360,6 +360,40 @@ def apply_preset(args: argparse.Namespace) -> None:
         args.bitrate = str(preset["bitrate"])
 
 
+def validate_args(args: argparse.Namespace) -> Tuple[bool, list]:
+    errors = []
+    if args.conf is not None and not (0.0 <= args.conf <= 1.0):
+        errors.append("Ungueltiger Wert fuer --conf (erlaubt: 0.0-1.0).")
+    if args.imgsz is not None:
+        if args.imgsz < 64 or args.imgsz > 4096:
+            errors.append("Ungueltiger Wert fuer --imgsz (empfohlen: 640-2048).")
+        if args.imgsz % 32 != 0:
+            errors.append("Ungueltiger Wert fuer --imgsz (muss ein Vielfaches von 32 sein).")
+    if args.work_w is not None and args.work_w < 0:
+        errors.append("Ungueltiger Wert fuer --work_w (muss >= 0 sein).")
+    for name, value in [("blocks", args.blocks), ("blocks_plates", args.blocks_plates), ("blocks_faces", args.blocks_faces)]:
+        if value is not None and value <= 0:
+            errors.append(f"Ungueltiger Wert fuer --{name} (muss > 0 sein).")
+    if args.pad is not None and args.pad < 0:
+        errors.append("Ungueltiger Wert fuer --pad (muss >= 0 sein).")
+    if args.snapshot_every is not None and args.snapshot_every < 0:
+        errors.append("Ungueltiger Wert fuer --snapshot_every (muss >= 0 sein).")
+    if args.tiling is not None and (args.tiling < 1 or args.tiling > 10):
+        errors.append("Ungueltiger Wert fuer --tiling (1-10).")
+    if args.test_minutes is not None and args.test_minutes < 0:
+        errors.append("Ungueltiger Wert fuer --test_minutes (muss >= 0 sein).")
+    if args.log_every is not None and args.log_every < 0:
+        errors.append("Ungueltiger Wert fuer --log_every (muss >= 0 sein).")
+    if args.snapshot_size:
+        try:
+            sw, sh = args.snapshot_size.lower().split("x")
+            if int(sw) <= 0 or int(sh) <= 0:
+                raise ValueError
+        except Exception:
+            errors.append("Ungueltiger Wert fuer --snapshot_size (Format: WIDTHxHEIGHT, z.B. 1920x1080).")
+    return (len(errors) == 0, errors)
+
+
 def preset_base_name(args: argparse.Namespace) -> str:
     source = args.input or args.output or "preset"
     base = os.path.splitext(os.path.basename(source))[0]
@@ -587,17 +621,24 @@ def main() -> int:
         extra_models = list_models_in_dir(os.path.join("models", "extra"))
 
     if not args.no_plates and not plate_models:
-        print("Kennzeichen-Modelle nicht gefunden. Bitte .pt Dateien nach models/plates legen oder --weights angeben.", file=sys.stderr)
+        print(
+            "Kennzeichen-Modelle nicht gefunden. Lege .pt Dateien in models/plates/ oder nutze --weights.\n"
+            "Beispiel: --weights models/plates/best.pt",
+            file=sys.stderr,
+        )
         return 2
     if not args.no_faces and not face_models:
-        print("Gesichts-Modelle nicht gefunden. Bitte .pt Dateien nach models/faces legen oder --faces_weights angeben.", file=sys.stderr)
+        print(
+            "Gesichts-Modelle nicht gefunden. Lege .pt Dateien in models/faces/ oder nutze --faces_weights.\n"
+            "Beispiel: --faces_weights models/faces/face1.pt",
+            file=sys.stderr,
+        )
         return 2
     apply_preset(args)
-    if args.tiling < 1 or args.tiling > 10:
-        print("Ungueltiger Wert fuer --tiling (1-10).", file=sys.stderr)
-        return 2
-    if args.snapshot_every < 0:
-        print("Ungueltiger Wert fuer --snapshot_every.", file=sys.stderr)
+    ok, errors = validate_args(args)
+    if not ok:
+        for msg in errors:
+            print(msg, file=sys.stderr)
         return 2
     exit_code = 0
 
