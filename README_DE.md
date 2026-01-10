@@ -65,7 +65,7 @@ Tracking
 
 No‑Pixel‑Zonen
 - Pixel-Zonen: `--no_pixel_zone_px1..4` (x1,y1,x2,y2 in Pixeln).
-- `--debug_zones` zeichnet die Zonen rot ein.
+- `--debug_no_pixel` zeichnet die Zonen rot ein.
 
 Snapshots
 - `--snapshot_every` speichert JPEG-Snapshots alle N Minuten (standardmaessig im Ordner des Input-Videos).
@@ -183,12 +183,12 @@ python dsgvo-pixeler.py \
   --input input.mp4 \
   --no_pixel_zone_px1 120,1500,900,2160 \
   --no_pixel_zone_px2 3000,1500,3800,2160 \
-  --debug_zones
+  --debug_no_pixel
 ```
 
 Testlauf (nur 2 Minuten, Debug-Overlay):
 ```bash
-python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
+python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_pixel
 ```
 
 Snapshots alle 5 Minuten (Full-HD):
@@ -211,8 +211,8 @@ python dsgvo-pixeler.py \
   --no_pixel_zone_px1 990,2796,1382,3211 \
   --no_pixel_zone_px2 368,3026,616,3118 \
   --test_minutes 1 \
-  --debug_overlay \
-  --debug_zones
+  --debug_pixel \
+  --debug_no_pixel
 ```
 
 Laengerer Test mit Snapshots und Tiling, Audio entfernt (5 Minuten):
@@ -224,8 +224,8 @@ python dsgvo-pixeler.py \
   --no_pixel_zone_px2 368,3026,616,3118 \
   --test_minutes 5 \
   --no_audio \
-  --debug_overlay \
-  --debug_zones \
+  --debug_pixel \
+  --debug_no_pixel \
   --tiling 1 \
   --snapshot_every 1 \
   --snapshot_size 1920x1080
@@ -238,7 +238,7 @@ python dsgvo-pixeler.py \
   --preset fast \
   --test_minutes 1 \
   --no_audio \
-  --debug_overlay \
+  --debug_pixel \
   --tiling 1 \
   --snapshot_every 1 \
   --snapshot_size 1920x1080
@@ -257,8 +257,8 @@ python dsgvo-pixeler.py \
 - `force_sw`: Software-Encoding erzwingen (nuetzlich, wenn VideoToolbox zickt).
 - `test_minutes`: Nur die ersten N Minuten verarbeiten (0 = alles).
 - `preset`: `fast`, `balanced`, `quality` fuer einfache Speed/Qualitaets-Wahl.
-- `debug_overlay`: Zeichnet Boxen zur Kontrolle ins Video.
-- `debug_zones`: Zeichnet die No-Pixel-Zonen rot ins Video.
+- `debug_pixel`: Zeichnet gruene Boxen zur Kontrolle ins Video.
+- `debug_no_pixel`: Zeichnet die No-Pixel-Zonen rot ins Video.
 - `no_audio`: Entfernt die Audiospur im Output.
 - `no_track`: Tracking deaktivieren (Tracking ist standardmaessig aktiv).
 - `tiling`: Frame in Kacheln teilen fuer kleine Objekte (1-10, Default 2).

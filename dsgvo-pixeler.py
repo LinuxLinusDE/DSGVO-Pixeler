@@ -190,13 +190,15 @@ def parse_args() -> argparse.Namespace:
         help="Preset fuer Speed/Qualitaet",
     )
     p.add_argument("--force_sw", action="store_true", help="Software-Encoding erzwingen (libx265/libx264)")
-    p.add_argument("--debug_overlay", action="store_true", help="BBox-Overlay fuer Debug einzeichnen")
+    p.add_argument("--debug_pixel", dest="debug_pixel", action="store_true", help="BBox-Overlay fuer Debug einzeichnen")
+    p.add_argument("--debug_overlay", dest="debug_pixel", action="store_true", help=argparse.SUPPRESS)
     p.add_argument("--no_audio", action="store_true", help="Audio entfernen")
     p.add_argument("--no_track", action="store_true", help="Tracking deaktivieren")
     p.add_argument("--snapshot_every", type=int, default=0, help="Snapshot alle N Minuten (0 = aus)")
     p.add_argument("--snapshot_dir", default="", help="Snapshot-Ordner (Default: Input-Ordner)")
     p.add_argument("--snapshot_size", default="1920x1080", help="Snapshot-Groesse, z.B. 1920x1080")
-    p.add_argument("--debug_zones", action="store_true", help="No-Pixel-Zonen rot einzeichnen")
+    p.add_argument("--debug_no_pixel", dest="debug_no_pixel", action="store_true", help="No-Pixel-Zonen rot einzeichnen")
+    p.add_argument("--debug_zones", dest="debug_no_pixel", action="store_true", help=argparse.SUPPRESS)
     p.add_argument("--no_plates", action="store_true", help="Kennzeichen-Erkennung deaktivieren")
     p.add_argument("--no_faces", action="store_true", help="Gesichts-Erkennung deaktivieren")
     p.add_argument("--tiling", type=int, default=2, help="Tiling fuer kleine Objekte (1-10, 1 = aus)")
@@ -326,8 +328,8 @@ def main() -> int:
         print("  --pad 20              (Sicherheitsrand)")
         print("  --no_pixel_zone_px1 120,1500,900,2160 (Pixel-Zone, x1,y1,x2,y2)")
         print("  --test_minutes 2      (nur erste 2 Minuten verarbeiten)")
-        print("  --debug_overlay       (BBox-Overlay fuer Debug)")
-        print("  --debug_zones         (No-Pixel-Zonen rot einzeichnen)")
+        print("  --debug_pixel         (BBox-Overlay fuer Debug)")
+        print("  --debug_no_pixel      (No-Pixel-Zonen rot einzeichnen)")
         print("  --no_audio            (Audio entfernen)")
         print("  --no_track            (Tracking deaktivieren)")
         print("  --snapshot_every 5    (Snapshot alle 5 Minuten)")
@@ -507,7 +509,7 @@ def main() -> int:
             nz_list = []
             for zx1, zy1, zx2, zy2 in zones_px:
                 nz_list.append((zx1, zy1, zx2, zy2))
-            if args.debug_zones and nz_list:
+            if args.debug_no_pixel and nz_list:
                 for zx1, zy1, zx2, zy2 in nz_list:
                     cv2.rectangle(frame, (zx1, zy1), (zx2, zy2), (0, 0, 255), 3)
 
@@ -593,7 +595,7 @@ def main() -> int:
                                 continue
                             blocks_val = args.blocks_faces if kind == "faces" else args.blocks_plates
                             pixelate_roi(frame, bx1, by1, bx2, by2, blocks_val)
-                            if args.debug_overlay:
+                            if args.debug_pixel:
                                 cv2.rectangle(frame, (bx1, by1), (bx2, by2), (0, 255, 0), 2)
 
             if next_snapshot_frame and frame_idx >= next_snapshot_frame:

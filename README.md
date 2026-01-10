@@ -65,7 +65,7 @@ Tracking
 
 No‑pixel zones
 - Pixel zones: `--no_pixel_zone_px1..4` (x1,y1,x2,y2 in pixels).
-- `--debug_zones` draws these zones in red.
+- `--debug_no_pixel` draws these zones in red.
 
 Snapshots
 - `--snapshot_every` saves JPEG snapshots every N minutes (stored next to the input video by default).
@@ -175,12 +175,12 @@ python dsgvo-pixeler.py \
   --input input.mp4 \
   --no_pixel_zone_px1 120,1500,900,2160 \
   --no_pixel_zone_px2 3000,1500,3800,2160 \
-  --debug_zones
+  --debug_no_pixel
 ```
 
 Test run (first 2 minutes, debug overlay):
 ```bash
-python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_overlay
+python dsgvo-pixeler.py --input input.mp4 --test_minutes 2 --debug_pixel
 ```
 
 Snapshots every 5 minutes (Full HD):
@@ -203,8 +203,8 @@ python dsgvo-pixeler.py \
   --no_pixel_zone_px1 990,2796,1382,3211 \
   --no_pixel_zone_px2 368,3026,616,3118 \
   --test_minutes 1 \
-  --debug_overlay \
-  --debug_zones
+  --debug_pixel \
+  --debug_no_pixel
 ```
 
 Longer test with snapshots and tiling, plus audio removed (5 minutes):
@@ -216,8 +216,8 @@ python dsgvo-pixeler.py \
   --no_pixel_zone_px2 368,3026,616,3118 \
   --test_minutes 5 \
   --no_audio \
-  --debug_overlay \
-  --debug_zones \
+  --debug_pixel \
+  --debug_no_pixel \
   --tiling 1 \
   --snapshot_every 1 \
   --snapshot_size 1920x1080
@@ -230,7 +230,7 @@ python dsgvo-pixeler.py \
   --preset fast \
   --test_minutes 1 \
   --no_audio \
-  --debug_overlay \
+  --debug_pixel \
   --tiling 1 \
   --snapshot_every 1 \
   --snapshot_size 1920x1080
@@ -249,8 +249,8 @@ python dsgvo-pixeler.py \
 - `force_sw`: force software encoding.
 - `test_minutes`: process only the first N minutes (0 = full video).
 - `preset`: `fast`, `balanced`, `quality` for quick speed/quality choice.
-- `debug_overlay`: draws boxes for verification.
-- `debug_zones`: draws the no-pixel zones in red.
+- `debug_pixel`: draws green boxes for verification.
+- `debug_no_pixel`: draws the no-pixel zones in red.
 - `no_audio`: remove the audio track in the output.
 - `no_track`: disable tracking (tracking is on by default).
 - `tiling`: split the frame into tiles for small objects (1-10, default 2).
