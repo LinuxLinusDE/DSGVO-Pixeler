@@ -13,6 +13,8 @@
 .venv/
 venv/
 
+html/
+
 # Ultralytics cache
 .ultralytics/
 

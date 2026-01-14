@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DSGVO-Pixeler</title>
+  <meta name="description" content="DSGVO-Pixeler: Automatisches Verpixeln von Bildern nach DSGVO – schnell, zuverlässig, modern." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-1: #0f172a;
+      --bg-2: #0b3c49;
+      --bg-3: #0b1120;
+      --ink: #e6f1ff;
+      --muted: #a8c0d6;
+      --accent: #ffd166;
+      --accent-2: #6ee7b7;
+      --card: rgba(12, 23, 40, 0.72);
+      --stroke: rgba(255, 255, 255, 0.08);
+      --glow: rgba(110, 231, 183, 0.35);
+      --shadow: 0 30px 80px rgba(7, 14, 28, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--ink);
+      background: radial-gradient(1200px 800px at 10% 10%, rgba(255, 209, 102, 0.08), transparent 60%),
+                  radial-gradient(900px 600px at 90% 15%, rgba(110, 231, 183, 0.12), transparent 65%),
+                  linear-gradient(160deg, var(--bg-1), var(--bg-2) 55%, var(--bg-3));
+      min-height: 100vh;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .orb {
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      background: radial-gradient(circle at 30% 30%, rgba(255, 209, 102, 0.35), rgba(255, 209, 102, 0));
+      top: -120px;
+      right: -160px;
+      filter: blur(10px);
+      opacity: 0.65;
+      pointer-events: none;
+      animation: float 16s ease-in-out infinite;
+    }
+
+    .orb.alt {
+      width: 420px;
+      height: 420px;
+      left: -140px;
+      top: 420px;
+      background: radial-gradient(circle at 40% 40%, rgba(110, 231, 183, 0.3), rgba(110, 231, 183, 0));
+      animation-delay: -6s;
+    }
+
+    header {
+      padding: 48px 6vw 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .logo {
+      font-family: "Fraunces", serif;
+      font-size: 24px;
+      letter-spacing: 0.5px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 20px;
+      font-size: 15px;
+      color: var(--muted);
+    }
+
+    .hero {
+      padding: 30px 6vw 60px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 36px;
+      align-items: center;
+    }
+
+    .hero h1 {
+      font-family: "Fraunces", serif;
+      font-size: clamp(32px, 5vw, 60px);
+      margin: 0 0 18px;
+      line-height: 1.05;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 26px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .btn {
+      padding: 14px 22px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: var(--accent);
+      color: #152238;
+      font-weight: 600;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn.secondary {
+      background: transparent;
+      border-color: var(--stroke);
+      color: var(--ink);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(255, 209, 102, 0.25);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .metric {
+      padding: 18px 20px;
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      background: rgba(8, 15, 28, 0.45);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 22px;
+    }
+
+    .section {
+      padding: 60px 6vw;
+    }
+
+    .section h2 {
+      font-family: "Fraunces", serif;
+      font-size: clamp(26px, 3.6vw, 40px);
+      margin-bottom: 18px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 26px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .card h3 {
+      margin-top: 0;
+    }
+
+    .examples {
+      display: grid;
+      gap: 26px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      align-items: start;
+    }
+
+    .example-media {
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      overflow: hidden;
+      background: rgba(15, 23, 42, 0.55);
+      box-shadow: var(--shadow);
+    }
+
+    .example-media img {
+      width: 100%;
+      display: block;
+    }
+
+    .example-media .label {
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--muted);
+      border-top: 1px solid var(--stroke);
+      background: rgba(7, 14, 28, 0.5);
+    }
+
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 10, 20, 0.88);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 20;
+    }
+
+    .lightbox:target {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .lightbox img {
+      max-width: min(92vw, 1200px);
+      max-height: 82vh;
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      box-shadow: var(--shadow);
+      background: #0b1120;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 24px;
+      right: 26px;
+      font-size: 36px;
+      color: var(--ink);
+      opacity: 0.8;
+    }
+
+    .lightbox-close:hover {
+      opacity: 1;
+    }
+
+    .video-frame {
+      aspect-ratio: 16 / 9;
+      border: none;
+      width: 100%;
+      display: block;
+    }
+
+    .cta {
+      text-align: center;
+      padding: 60px 6vw 90px;
+    }
+
+    footer {
+      padding: 30px 6vw 50px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--stroke);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .callout {
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 209, 102, 0.35);
+      background: rgba(255, 209, 102, 0.08);
+      color: var(--ink);
+      margin-top: 20px;
+    }
+
+    .callout strong {
+      color: var(--accent);
+    }
+
+    .faq {
+      display: grid;
+      gap: 16px;
+    }
+
+    .code-card pre {
+      margin: 0;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(5, 10, 20, 0.7);
+      border: 1px solid var(--stroke);
+      color: #d6e3f4;
+      font-size: 13px;
+      line-height: 1.5;
+      overflow-x: auto;
+    }
+
+    .code-card code {
+      font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    details {
+      border-radius: 16px;
+      border: 1px solid var(--stroke);
+      background: rgba(8, 15, 28, 0.5);
+      padding: 14px 18px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      list-style: none;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details p {
+      color: var(--muted);
+      margin: 10px 0 0;
+    }
+
+    .stagger {
+      animation: rise 0.7s ease forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .stagger.delay-1 { animation-delay: 0.1s; }
+    .stagger.delay-2 { animation-delay: 0.2s; }
+    .stagger.delay-3 { animation-delay: 0.3s; }
+
+    @keyframes rise {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(22px); }
+    }
+
+    @media (max-width: 720px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .nav {
+        flex-wrap: wrap;
+      }
+
+      .actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .btn {
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="orb"></div>
+    <div class="orb alt"></div>
+
+    <header>
+      <div class="logo">DSGVO-Pixeler</div>
+      <nav class="nav">
+        <a href="#vorteile">Vorteile</a>
+        <a href="#beispiele">Beispiele</a>
+        <a href="#moeglichkeiten">Möglichkeiten</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#anleitung">Anleitung</a>
+        <a href="#faq">FAQ</a>
+        <a href="#beispiele-praxis">Praxis</a>
+        <a href="https://github.com/LinuxLinusDE/DSGVO-Pixeler/" target="_blank" rel="noreferrer">GitHub</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div>
+        <span class="tag stagger">Automatisches DSGVO-Tool</span>
+        <h1 class="stagger delay-1">Verpixeln, anonymisieren, liefern – in Sekunden.</h1>
+        <p class="stagger delay-2">DSGVO-Pixeler erkennt sensible Bildbereiche, verpixelt sie automatisch und sorgt für konsistente, sichere Ausgaben. Ideal für YouTube, Screenshots, Datensätze oder Support-Dokumente.</p>
+        <div class="actions stagger delay-3">
+          <a class="btn" href="https://github.com/LinuxLinusDE/DSGVO-Pixeler/" target="_blank" rel="noreferrer">Projekt auf GitHub</a>
+          <a class="btn secondary" href="#beispiele">Beispiele ansehen</a>
+        </div>
+        <div class="callout">
+          <strong>Kostenlos verfügbar:</strong> Verpixelt primär Gesichter und Kennzeichen mit zuverlässiger Erkennung.
+        </div>
+        <div class="metrics">
+          <div class="metric">
+            <strong>Schnell</strong>
+            <span>Batch-Verarbeitung ohne manuellen Aufwand.</span>
+          </div>
+          <div class="metric">
+            <strong>Präzise</strong>
+            <span>Gezielte Verpixelung sensibler Bereiche.</span>
+          </div>
+          <div class="metric">
+            <strong>Nachvollziehbar</strong>
+            <span>Klare Outputs für Audit und Review.</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Warum DSGVO-Pixeler?</h3>
+        <p>Für Bildmaterial gelten klare Datenschutzanforderungen. DSGVO-Pixeler beschleunigt deinen Prozess und hilft dabei, sensible Informationen zuverlässig zu anonymisieren – mit einem modernen Workflow, der sich leicht in bestehende Pipelines integrieren lässt.</p>
+        <p><strong>Pro-Tipp:</strong> Nutze es für Reports, interne Demos oder Trainingsdaten.</p>
+      </div>
+    </section>
+
+    <section id="vorteile" class="section">
+      <h2>Vorteile, die sofort wirken</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>DSGVO-Ready</h3>
+          <p>Reduziere das Risiko von Datenlecks mit automatischer Erkennung und Verpixelung.</p>
+        </div>
+        <div class="card">
+          <h3>Flexibel erweiterbar</h3>
+          <p>Ideal als CLI-Tool oder als Baustein in einer automatisierten Pipeline.</p>
+        </div>
+        <div class="card">
+          <h3>Saubere Dokumentation</h3>
+          <p>Saubere und nachvollziehbare Outputs für Freigaben und Reviews.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="beispiele" class="section">
+      <h2>Beispiele: Bilder und Videos</h2>
+      <div class="examples">
+        <div class="example-media">
+          <a href="#lightbox-1">
+            <img src="../misc/dsgvo-pixeler-1.png" alt="Beispielbild 1: Verpixelte Bereiche" />
+          </a>
+          <div class="label">Klick zum Vergrößern</div>
+        </div>
+        <div class="example-media">
+          <a href="#lightbox-2">
+            <img src="../misc/dsgvo-pixeler-2.png" alt="Beispielbild 2: Automatische Anonymisierung" />
+          </a>
+          <div class="label">Klick zum Vergrößern</div>
+        </div>
+        <div class="example-media">
+          <iframe class="video-frame" src="https://www.youtube.com/embed/AGoVGifEnQM" title="DSGVO-Pixeler Demo 1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          <div class="label">Beispielvideo: YouTube Demo 1</div>
+        </div>
+        <div class="example-media">
+          <iframe class="video-frame" src="https://www.youtube.com/embed/gW9wqUIb1_s" title="DSGVO-Pixeler Demo 2" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          <div class="label">Beispielvideo: YouTube Demo 2</div>
+        </div>
+      </div>
+    </section>
+
+    <div id="lightbox-1" class="lightbox">
+      <a class="lightbox-close" href="#beispiele" aria-label="Lightbox schließen">×</a>
+      <img src="../misc/dsgvo-pixeler-1.png" alt="Beispielbild 1: Verpixelte Bereiche" />
+    </div>
+
+    <div id="lightbox-2" class="lightbox">
+      <a class="lightbox-close" href="#beispiele" aria-label="Lightbox schließen">×</a>
+      <img src="../misc/dsgvo-pixeler-2.png" alt="Beispielbild 2: Automatische Anonymisierung" />
+    </div>
+
+    <section id="moeglichkeiten" class="section">
+      <h2>Möglichkeiten & Features</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Erkennung</h3>
+          <p>Kennzeichen und Gesichter sind standardmäßig aktiv und lassen sich gezielt ein- oder ausschalten.</p>
+        </div>
+        <div class="card">
+          <h3>Mosaik statt Blur</h3>
+          <p>Echte Pixelmosaike mit eigener Stärke für Kennzeichen und Gesichter.</p>
+        </div>
+        <div class="card">
+          <h3>Tiling & Tracking</h3>
+          <p>Bessere Erkennung kleiner Details durch Tiling, optional mit Tracking gegen Flackern.</p>
+        </div>
+        <div class="card">
+          <h3>No-Pixel-Zonen</h3>
+          <p>Definiere Bereiche, die niemals verpixelt werden sollen – ideal für UI-Elemente.</p>
+        </div>
+        <div class="card">
+          <h3>Snapshots</h3>
+          <p>Automatische JPEG-Snapshots in definierbaren Intervallen.</p>
+        </div>
+        <div class="card">
+          <h3>Presets</h3>
+          <p>Speichere Einstellungen als Preset und lade sie für neue Projekte.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="workflow" class="section">
+      <h2>Workflow in drei Schritten</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>1. Bilder wählen</h3>
+          <p>Definiere die Quelle oder lade ein Bild-Set, das geprüft werden soll.</p>
+        </div>
+        <div class="card">
+          <h3>2. Analyse & Verpixelung</h3>
+          <p>DSGVO-Pixeler erkennt sensible Bereiche und verpixelt sie automatisch.</p>
+        </div>
+        <div class="card">
+          <h3>3. Export & Sharing</h3>
+          <p>Erhalte sofort nutzbare Ergebnisse für Reports, Support oder Training.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="anleitung" class="section">
+      <h2>Anleitung (Kurzform)</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Setup</h3>
+          <p>Python 3.10+, ffmpeg und ein Kennzeichenmodell in <code>models/plates/</code> bereitstellen.</p>
+        </div>
+        <div class="card">
+          <h3>Installation</h3>
+          <p>Virtuelle Umgebung anlegen, aktivieren und die <code>requirements.txt</code> installieren.</p>
+        </div>
+        <div class="card">
+          <h3>Start</h3>
+          <p>Einfach ausführen: <code>python dsgvo-pixeler.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt</code></p>
+        </div>
+        <div class="card">
+          <h3>Ergebnis</h3>
+          <p>Das Output-Video landet im Zielordner, optional mit Debug-Overlays und Snapshots.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="section">
+      <h2>FAQ</h2>
+      <div class="faq">
+        <details>
+          <summary>Werden mehrere Modelle parallel verarbeitet?</summary>
+          <p>Nein, sie laufen nacheinander – das ist stabiler und oft schneller.</p>
+        </details>
+        <details>
+          <summary>Warum ist Tracking bei Tiling deaktiviert?</summary>
+          <p>Über Kacheln sind Objekt-IDs nicht konsistent, daher wird Tracking automatisch abgeschaltet.</p>
+        </details>
+        <details>
+          <summary>Was ist der Standardwert für Tiling?</summary>
+          <p>Standard ist <code>--tiling 2</code> (2x2 Raster) für bessere Erkennung kleiner Kennzeichen.</p>
+        </details>
+      </div>
+    </section>
+
+    <section id="beispiele-praxis" class="section">
+      <h2>Mehr Beispiele aus der Praxis</h2>
+      <div class="grid">
+        <div class="card code-card">
+          <h3>Minimaler Lauf (Defaults)</h3>
+          <pre><code>python dsgvo-pixeler.py --input source.mp4</code></pre>
+        </div>
+        <div class="card code-card">
+          <h3>H264 kompatibel + feste Bitrate</h3>
+          <pre><code>python dsgvo-pixeler.py \\
+  --input input.mp4 \\
+  --output output_h264.mp4 \\
+  --weights /path/to/plate_model.pt \\
+  --codec h264 \\
+  --bitrate 50M</code></pre>
+        </div>
+        <div class="card code-card">
+          <h3>Nur Kennzeichen</h3>
+          <pre><code>python dsgvo-pixeler.py --input input.mp4 \\
+  --weights models/plates/best.pt --no_faces</code></pre>
+        </div>
+        <div class="card code-card">
+          <h3>Nur Gesichter</h3>
+          <pre><code>python dsgvo-pixeler.py --input input.mp4 \\
+  --faces_weights models/faces/face1.pt --no_plates</code></pre>
+        </div>
+        <div class="card code-card">
+          <h3>Tiling + Debug-Overlays</h3>
+          <pre><code>python dsgvo-pixeler.py --input source.mp4 \\
+  --tiling 2 --debug_pixel --debug_no_pixel</code></pre>
+        </div>
+        <div class="card code-card">
+          <h3>Snapshots alle 5 Minuten</h3>
+          <pre><code>python dsgvo-pixeler.py --input input.mp4 \\
+  --snapshot_every 5 --snapshot_size 1920x1080</code></pre>
+        </div>
+        <div class="card code-card">
+          <h3>Preset speichern & laden</h3>
+          <pre><code>python dsgvo-pixeler.py --input source.mp4 --save_preset json\npython dsgvo-pixeler.py --input another.mp4 --load_preset source_preset</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <h2>Bereit für sichere Bilddaten?</h2>
+      <p>Teste den DSGVO-Pixeler, integriere ihn in deinen Workflow und bleib DSGVO-konform.</p>
+      <div class="actions" style="justify-content:center; margin-top: 20px;">
+        <a class="btn" href="https://github.com/LinuxLinusDE/DSGVO-Pixeler/" target="_blank" rel="noreferrer">Jetzt auf GitHub ansehen</a>
+        <a class="btn secondary" href="mailto:hello@example.com">Kontakt aufnehmen</a>
+      </div>
+    </section>
+
+    <footer>
+      <div>DSGVO-Pixeler – Moderne Verpixelung für sensible Bilddaten.</div>
+    </footer>
+  </div>
+</body>
+</html>
