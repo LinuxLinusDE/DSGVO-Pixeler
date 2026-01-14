@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DSGVO-Pixeler</title>
   <meta name="description" content="DSGVO-Pixeler: Automatisches Verpixeln von Bildern nach DSGVO – schnell, zuverlässig, modern." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
       --bg-1: #0f172a;
@@ -21,6 +18,7 @@
       --stroke: rgba(255, 255, 255, 0.08);
       --glow: rgba(110, 231, 183, 0.35);
       --shadow: 0 30px 80px rgba(7, 14, 28, 0.45);
+      --obscure: 0;
     }
 
     * {
@@ -29,7 +27,7 @@
 
     body {
       margin: 0;
-      font-family: "Space Grotesk", sans-serif;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
       color: var(--ink);
       background: radial-gradient(1200px 800px at 10% 10%, rgba(255, 209, 102, 0.08), transparent 60%),
                   radial-gradient(900px 600px at 90% 15%, rgba(110, 231, 183, 0.12), transparent 65%),
@@ -98,7 +96,7 @@
     }
 
     .logo {
-      font-family: "Fraunces", serif;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
       font-size: 24px;
       letter-spacing: 0.5px;
     }
@@ -111,15 +109,40 @@
     }
 
     .hero {
+      position: relative;
       padding: 30px 6vw 60px;
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 36px;
       align-items: center;
+      overflow: hidden;
+    }
+
+    .hero > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-obscure {
+      position: absolute;
+      inset: -10%;
+      background-image:
+        linear-gradient(transparent 16px, rgba(6, 10, 20, 0.92) 18px),
+        linear-gradient(90deg, transparent 16px, rgba(6, 10, 20, 0.92) 18px),
+        linear-gradient(transparent 32px, rgba(6, 10, 20, 0.75) 34px),
+        linear-gradient(90deg, transparent 32px, rgba(6, 10, 20, 0.75) 34px);
+      background-size: 18px 18px;
+      background-position: 0 0, 0 0, 9px 9px, 9px 9px;
+      opacity: calc(0.15 + (var(--obscure) * 0.9));
+      backdrop-filter: blur(calc(var(--obscure) * 4px));
+      mix-blend-mode: multiply;
+      pointer-events: none;
+      z-index: 2;
+      transition: opacity 0.2s ease, backdrop-filter 0.2s ease;
     }
 
     .hero h1 {
-      font-family: "Fraunces", serif;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
       font-size: clamp(32px, 5vw, 60px);
       margin: 0 0 18px;
       line-height: 1.05;
@@ -185,7 +208,7 @@
     }
 
     .section h2 {
-      font-family: "Fraunces", serif;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
       font-size: clamp(26px, 3.6vw, 40px);
       margin-bottom: 18px;
     }
@@ -498,6 +521,7 @@
     </header>
 
     <section class="hero">
+      <div class="hero-obscure" aria-hidden="true"></div>
       <div>
         <span class="tag stagger">Automatisches DSGVO-Tool</span>
         <h1 class="stagger delay-1">Verpixeln, anonymisieren, liefern – in Sekunden.</h1>
@@ -534,7 +558,7 @@
     <section id="demo" class="featured-video">
       <div class="card">
         <h2>Hauptdemo: Was der Pixeler kann</h2>
-        <iframe class="video-frame" src="https://www.youtube.com/embed/Jby13fwgfoI" title="DSGVO-Pixeler Hauptdemo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        <iframe class="video-frame" src="https://www.youtube.com/embed/VYVoB2Qsij4" title="DSGVO-Pixeler Hauptdemo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
       </div>
     </section>
 
@@ -785,5 +809,31 @@
       <div>DSGVO-Pixeler – Moderne Verpixelung für sensible Bilddaten.</div>
     </footer>
   </div>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const hero = document.querySelector(".hero");
+      if (!hero) return;
+
+      let ticking = false;
+      const update = () => {
+        const max = Math.max(1, hero.offsetHeight * 0.8);
+        const value = Math.min(1, window.scrollY / max);
+        root.style.setProperty("--obscure", value.toFixed(3));
+        ticking = false;
+      };
+
+      const onScroll = () => {
+        if (!ticking) {
+          ticking = true;
+          window.requestAnimationFrame(update);
+        }
+      };
+
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", update);
+      update();
+    })();
+  </script>
 </body>
 </html>
