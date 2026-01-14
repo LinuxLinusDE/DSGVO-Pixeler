@@ -57,7 +57,7 @@
       filter: blur(10px);
       opacity: 0.65;
       pointer-events: none;
-      animation: float 16s ease-in-out infinite;
+      animation: float 16s ease-in-out infinite, orb-glow 30s ease-in-out infinite;
     }
 
     .orb.alt {
@@ -66,7 +66,27 @@
       left: -140px;
       top: 420px;
       background: radial-gradient(circle at 40% 40%, rgba(110, 231, 183, 0.3), rgba(110, 231, 183, 0));
-      animation-delay: -6s;
+      animation-delay: -6s, -14s;
+    }
+
+    .orb.tertiary {
+      width: 360px;
+      height: 360px;
+      left: 20%;
+      top: -140px;
+      background: radial-gradient(circle at 35% 35%, rgba(125, 211, 252, 0.28), rgba(125, 211, 252, 0));
+      opacity: 0.6;
+      animation-delay: -10s, -22s;
+    }
+
+    .orb.quarter {
+      width: 460px;
+      height: 460px;
+      right: -80px;
+      top: 720px;
+      background: radial-gradient(circle at 30% 30%, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0));
+      opacity: 0.55;
+      animation-delay: -4s, -18s;
     }
 
     header {
@@ -170,6 +190,18 @@
       margin-bottom: 18px;
     }
 
+    .featured-video {
+      padding: 0 6vw 60px;
+    }
+
+    .featured-video .card {
+      padding: 18px;
+    }
+
+    .featured-video .video-frame {
+      border-radius: 16px;
+    }
+
     .grid {
       display: grid;
       gap: 26px;
@@ -183,10 +215,27 @@
       padding: 22px;
       box-shadow: var(--shadow);
       backdrop-filter: blur(18px);
+      position: relative;
+      overflow: hidden;
     }
 
     .card h3 {
       margin-top: 0;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(transparent 11px, rgba(255, 255, 255, 0.08) 12px),
+        linear-gradient(90deg, transparent 11px, rgba(255, 255, 255, 0.08) 12px);
+      background-size: 12px 12px;
+      opacity: 0.15;
+      transform: translate3d(-8px, -6px, 0);
+      mix-blend-mode: screen;
+      pointer-events: none;
+      animation: card-pixels 14s linear infinite;
     }
 
     .examples {
@@ -304,6 +353,27 @@
       gap: 16px;
     }
 
+    .list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+      color: var(--muted);
+    }
+
+    .list li {
+      padding-left: 18px;
+      position: relative;
+    }
+
+    .list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
     .code-card pre {
       margin: 0;
       padding: 14px 16px;
@@ -364,6 +434,24 @@
       50% { transform: translateY(22px); }
     }
 
+    @keyframes orb-glow {
+      0% { opacity: 0.5; filter: blur(12px) hue-rotate(0deg); }
+      50% { opacity: 0.95; filter: blur(18px) hue-rotate(22deg); }
+      100% { opacity: 0.5; filter: blur(12px) hue-rotate(0deg); }
+    }
+
+    @keyframes card-pixels {
+      0% { transform: translate3d(-8px, -6px, 0); }
+      50% { transform: translate3d(6px, 4px, 0); }
+      100% { transform: translate3d(-8px, -6px, 0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .card::before {
+        animation: none;
+      }
+    }
+
     @media (max-width: 720px) {
       header {
         flex-direction: column;
@@ -389,15 +477,20 @@
   <div class="page">
     <div class="orb"></div>
     <div class="orb alt"></div>
+    <div class="orb tertiary"></div>
+    <div class="orb quarter"></div>
 
     <header>
       <div class="logo">DSGVO-Pixeler</div>
       <nav class="nav">
+        <a href="#demo">Demo</a>
         <a href="#vorteile">Vorteile</a>
         <a href="#beispiele">Beispiele</a>
         <a href="#moeglichkeiten">Möglichkeiten</a>
+        <a href="#funktionen">Funktionen</a>
         <a href="#workflow">Workflow</a>
         <a href="#anleitung">Anleitung</a>
+        <a href="#voraussetzungen">Voraussetzungen</a>
         <a href="#faq">FAQ</a>
         <a href="#beispiele-praxis">Praxis</a>
         <a href="https://github.com/LinuxLinusDE/DSGVO-Pixeler/" target="_blank" rel="noreferrer">GitHub</a>
@@ -408,7 +501,7 @@
       <div>
         <span class="tag stagger">Automatisches DSGVO-Tool</span>
         <h1 class="stagger delay-1">Verpixeln, anonymisieren, liefern – in Sekunden.</h1>
-        <p class="stagger delay-2">DSGVO-Pixeler erkennt sensible Bildbereiche, verpixelt sie automatisch und sorgt für konsistente, sichere Ausgaben. Ideal für YouTube, Screenshots, Datensätze oder Support-Dokumente.</p>
+        <p class="stagger delay-2">DSGVO-Pixeler erkennt sensible Bildbereiche, verpixelt sie automatisch und sorgt für konsistente Ausgaben. Ideal für YouTube, Screenshots, Datensätze oder Support-Dokumente.</p>
         <div class="actions stagger delay-3">
           <a class="btn" href="https://github.com/LinuxLinusDE/DSGVO-Pixeler/" target="_blank" rel="noreferrer">Projekt auf GitHub</a>
           <a class="btn secondary" href="#beispiele">Beispiele ansehen</a>
@@ -438,12 +531,19 @@
       </div>
     </section>
 
+    <section id="demo" class="featured-video">
+      <div class="card">
+        <h2>Hauptdemo: Was der Pixeler kann</h2>
+        <iframe class="video-frame" src="https://www.youtube.com/embed/Jby13fwgfoI" title="DSGVO-Pixeler Hauptdemo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </section>
+
     <section id="vorteile" class="section">
       <h2>Vorteile, die sofort wirken</h2>
-      <div class="grid">
+        <div class="grid">
         <div class="card">
-          <h3>DSGVO-Ready</h3>
-          <p>Reduziere das Risiko von Datenlecks mit automatischer Erkennung und Verpixelung.</p>
+          <h3>DSGVO-orientiert</h3>
+          <p>Hilft beim datenschutzkonformen Arbeiten durch automatische Erkennung und Verpixelung.</p>
         </div>
         <div class="card">
           <h3>Flexibel erweiterbar</h3>
@@ -522,6 +622,32 @@
       </div>
     </section>
 
+    <section id="funktionen" class="section">
+      <h2>Alle Funktionen im Überblick</h2>
+      <div class="grid">
+        <div class="card">
+          <ul class="list">
+            <li>Kennzeichen- und Gesichtserkennung (YOLOv8)</li>
+            <li>Mosaik-Verpixelung mit separater Stärke</li>
+            <li>Sicherheitsrand per <code>--pad</code></li>
+            <li>Tiling für kleine Objekte (<code>--tiling</code>)</li>
+            <li>Tracking gegen Flackern (<code>--no_track</code>)</li>
+            <li>No-Pixel-Zonen mit Debug-Overlay</li>
+          </ul>
+        </div>
+        <div class="card">
+          <ul class="list">
+            <li>Snapshots in Intervallen + feste Größe</li>
+            <li>Performance-Tuning über <code>work_w</code> und <code>imgsz</code></li>
+            <li>ffmpeg-Encode inkl. Audio-Steuerung</li>
+            <li>Bitrate-Handling (<code>auto</code> oder fix)</li>
+            <li>Presets speichern & laden</li>
+            <li>Logging mit Fortschritt, ETA und FPS</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
     <section id="workflow" class="section">
       <h2>Workflow in drei Schritten</h2>
       <div class="grid">
@@ -558,6 +684,30 @@
         <div class="card">
           <h3>Ergebnis</h3>
           <p>Das Output-Video landet im Zielordner, optional mit Debug-Overlays und Snapshots.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="voraussetzungen" class="section">
+      <h2>Voraussetzungen & Installation</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Voraussetzungen</h3>
+          <ul class="list">
+            <li>Python 3.10+</li>
+            <li>ffmpeg (z. B. via Homebrew)</li>
+            <li>Kennzeichenmodell als <code>.pt</code> in <code>models/plates/</code></li>
+            <li>Optional: Gesichtsmodelle in <code>models/faces/</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Installation (kurz)</h3>
+          <ul class="list">
+            <li><code>python3 -m venv .venv</code></li>
+            <li><code>source .venv/bin/activate</code></li>
+            <li><code>pip install -U pip</code></li>
+            <li><code>pip install -r requirements.txt</code></li>
+          </ul>
         </div>
       </div>
     </section>
@@ -628,7 +778,6 @@
       <p>Teste den DSGVO-Pixeler, integriere ihn in deinen Workflow und bleib DSGVO-konform.</p>
       <div class="actions" style="justify-content:center; margin-top: 20px;">
         <a class="btn" href="https://github.com/LinuxLinusDE/DSGVO-Pixeler/" target="_blank" rel="noreferrer">Jetzt auf GitHub ansehen</a>
-        <a class="btn secondary" href="mailto:hello@example.com">Kontakt aufnehmen</a>
       </div>
     </section>
 

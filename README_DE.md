@@ -1,6 +1,9 @@
 # DSGVO-Pixeler
 Dieses Tool verarbeitet 4K-Videos lokal und verpixelt automatisch Kfz-Kennzeichen und Gesichter mit YOLOv8. Optimiert fuer Apple Silicon (M-Serie) und Action-Cam-Footage, priorisiert es Datenschutz durch zuverlaessige Anonymisierung sensibler Bildinhalte bei Erhalt von Videoqualitaet und Audio.
 
+## Demo (YouTube)
+[![DSGVO-Pixeler Demo](https://img.youtube.com/vi/Jby13fwgfoI/hqdefault.jpg)](https://youtu.be/Jby13fwgfoI)
+
 ## Voraussetzungen
 - Python 3.10+
 - ffmpeg via Homebrew: `brew install ffmpeg`
