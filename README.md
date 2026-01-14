@@ -4,6 +4,9 @@ This tool processes 4K videos locally and automatically pixelates vehicle licens
 ## Featured demo (YouTube)
 [![DSGVO-Pixeler demo](https://img.youtube.com/vi/VYVoB2Qsij4/hqdefault.jpg)](https://youtu.be/VYVoB2Qsij4)
 
+## Project website
+https://linuxlinusde.github.io/DSGVO-Pixeler/
+
 ## Requirements
 - Python 3.10+
 - ffmpeg via Homebrew: `brew install ffmpeg`

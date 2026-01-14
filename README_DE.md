@@ -4,6 +4,9 @@ Dieses Tool verarbeitet 4K-Videos lokal und verpixelt automatisch Kfz-Kennzeiche
 ## Demo (YouTube)
 [![DSGVO-Pixeler Demo](https://img.youtube.com/vi/VYVoB2Qsij4/hqdefault.jpg)](https://youtu.be/VYVoB2Qsij4)
 
+## Projektseite
+https://linuxlinusde.github.io/DSGVO-Pixeler/
+
 ## Voraussetzungen
 - Python 3.10+
 - ffmpeg via Homebrew: `brew install ffmpeg`
