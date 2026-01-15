@@ -56,6 +56,7 @@ Note: the green boxes show detected objects and the red boxes show no-pixel zone
 ## Face models (default)
 - Default: all `.pt` files in `models/faces/`.
 - Alternatively: `--faces_weights models/faces/a.pt,models/faces/b.pt`
+- Face model link: https://github.com/lindevs/yolov8-face
 
 ## Functions
 Core features and what the script does in the background:

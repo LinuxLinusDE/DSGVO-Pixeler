@@ -56,6 +56,7 @@ Hinweis: Die grünen Rahmen zeigen erkannte Objekte, die roten Rahmen die No-Pi
 ## Gesichtsmodelle (Default)
 - Standard: alle `.pt` Dateien in `models/faces/`.
 - Alternativ: `--faces_weights models/faces/a.pt,models/faces/b.pt`
+- Link fuer Gesichtsmodelle: https://github.com/lindevs/yolov8-face
 
 ## Funktionen
 Ueberblick ueber alle Funktionen und was das Script im Hintergrund macht:
