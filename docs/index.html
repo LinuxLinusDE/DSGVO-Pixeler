@@ -18,8 +18,6 @@
       --stroke: rgba(255, 255, 255, 0.08);
       --glow: rgba(110, 231, 183, 0.35);
       --shadow: 0 30px 80px rgba(7, 14, 28, 0.45);
-      --obscure: 0;
-      --obscure-scale: 1;
     }
 
     * {
@@ -53,10 +51,10 @@
       background: radial-gradient(circle at 30% 30%, rgba(255, 209, 102, 0.35), rgba(255, 209, 102, 0));
       top: -120px;
       right: -160px;
-      filter: blur(10px);
-      opacity: 0.65;
+      filter: blur(6px);
+      opacity: 0.78;
       pointer-events: none;
-      animation: float 16s ease-in-out infinite, orb-glow 30s ease-in-out infinite;
+      animation: float 12s ease-in-out infinite, orb-glow 22s ease-in-out infinite;
     }
 
     .orb.alt {
@@ -64,8 +62,9 @@
       height: 420px;
       left: -140px;
       top: 420px;
-      background: radial-gradient(circle at 40% 40%, rgba(110, 231, 183, 0.3), rgba(110, 231, 183, 0));
-      animation-delay: -6s, -14s;
+      background: radial-gradient(circle at 40% 40%, rgba(110, 231, 183, 0.4), rgba(110, 231, 183, 0));
+      opacity: 0.82;
+      animation-delay: -4s, -10s;
     }
 
     .orb.tertiary {
@@ -73,9 +72,9 @@
       height: 360px;
       left: 20%;
       top: -140px;
-      background: radial-gradient(circle at 35% 35%, rgba(125, 211, 252, 0.28), rgba(125, 211, 252, 0));
-      opacity: 0.6;
-      animation-delay: -10s, -22s;
+      background: radial-gradient(circle at 35% 35%, rgba(125, 211, 252, 0.5), rgba(125, 211, 252, 0));
+      opacity: 0.85;
+      animation-delay: -6s, -16s;
     }
 
     .orb.quarter {
@@ -83,9 +82,89 @@
       height: 460px;
       right: -80px;
       top: 720px;
-      background: radial-gradient(circle at 30% 30%, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0));
-      opacity: 0.55;
-      animation-delay: -4s, -18s;
+      background: radial-gradient(circle at 30% 30%, rgba(251, 191, 36, 0.45), rgba(251, 191, 36, 0));
+      opacity: 0.82;
+      animation-delay: -2s, -12s;
+    }
+
+    .orb.small-a {
+      width: 240px;
+      height: 240px;
+      left: 8%;
+      top: 120px;
+      background: radial-gradient(circle at 30% 30%, rgba(110, 231, 183, 0.46), rgba(110, 231, 183, 0));
+      opacity: 0.82;
+      animation-delay: -4s, -10s;
+    }
+
+    .orb.small-b {
+      width: 200px;
+      height: 200px;
+      right: 18%;
+      top: 260px;
+      background: radial-gradient(circle at 35% 35%, rgba(255, 209, 102, 0.45), rgba(255, 209, 102, 0));
+      opacity: 0.8;
+      animation-delay: -6s, -12s;
+    }
+
+    .orb.small-c {
+      width: 220px;
+      height: 220px;
+      left: 60%;
+      top: 520px;
+      background: radial-gradient(circle at 40% 40%, rgba(125, 211, 252, 0.42), rgba(125, 211, 252, 0));
+      opacity: 0.8;
+      animation-delay: -4s, -14s;
+    }
+
+    .orb.small-d {
+      width: 180px;
+      height: 180px;
+      left: 28%;
+      top: 820px;
+      background: radial-gradient(circle at 35% 35%, rgba(110, 231, 183, 0.42), rgba(110, 231, 183, 0));
+      opacity: 0.78;
+      animation-delay: -5s, -18s;
+    }
+
+    .orb.small-e {
+      width: 190px;
+      height: 190px;
+      right: 6%;
+      top: 120px;
+      background: radial-gradient(circle at 35% 35%, rgba(251, 191, 36, 0.4), rgba(251, 191, 36, 0));
+      opacity: 0.8;
+      animation-delay: -9s, -15s;
+    }
+
+    .orb.small-f {
+      width: 210px;
+      height: 210px;
+      left: 42%;
+      top: 320px;
+      background: radial-gradient(circle at 35% 35%, rgba(125, 211, 252, 0.45), rgba(125, 211, 252, 0));
+      opacity: 0.78;
+      animation-delay: -3s, -19s;
+    }
+
+    .orb.small-g {
+      width: 170px;
+      height: 170px;
+      left: 12%;
+      top: 560px;
+      background: radial-gradient(circle at 35% 35%, rgba(255, 209, 102, 0.4), rgba(255, 209, 102, 0));
+      opacity: 0.75;
+      animation-delay: -7s, -13s;
+    }
+
+    .orb.small-h {
+      width: 200px;
+      height: 200px;
+      right: 22%;
+      top: 660px;
+      background: radial-gradient(circle at 35% 35%, rgba(110, 231, 183, 0.4), rgba(110, 231, 183, 0));
+      opacity: 0.78;
+      animation-delay: -11s, -21s;
     }
 
     header {
@@ -139,40 +218,13 @@
     }
 
     .hero {
-      position: relative;
       padding: 30px 6vw 60px;
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 36px;
       align-items: center;
-      overflow: hidden;
     }
 
-    .hero > * {
-      position: relative;
-      z-index: 1;
-    }
-
-    .hero-obscure {
-      position: absolute;
-      inset: -10%;
-      background-image:
-        linear-gradient(transparent 15px, rgba(6, 10, 20, 0.45) 16px, rgba(6, 10, 20, 0.98) 18px, rgba(6, 10, 20, 0.45) 20px, transparent 21px),
-        linear-gradient(90deg, transparent 15px, rgba(6, 10, 20, 0.45) 16px, rgba(6, 10, 20, 0.98) 18px, rgba(6, 10, 20, 0.45) 20px, transparent 21px),
-        linear-gradient(transparent 31px, rgba(6, 10, 20, 0.35) 32px, rgba(6, 10, 20, 0.85) 34px, rgba(6, 10, 20, 0.35) 36px, transparent 37px),
-        linear-gradient(90deg, transparent 31px, rgba(6, 10, 20, 0.35) 32px, rgba(6, 10, 20, 0.85) 34px, rgba(6, 10, 20, 0.35) 36px, transparent 37px);
-      background-size: 20px 20px;
-      background-position: 0 0, 0 0, 9px 9px, 9px 9px;
-      opacity: calc(0.35 + (var(--obscure) * 0.9));
-      backdrop-filter: blur(calc(var(--obscure) * 3px));
-      filter: blur(3px);
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 55%, transparent 100%);
-      mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 55%, transparent 100%);
-      mix-blend-mode: multiply;
-      pointer-events: none;
-      z-index: 2;
-      transition: opacity 0.2s ease, backdrop-filter 0.2s ease;
-    }
 
     .hero h1 {
       font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
@@ -487,13 +539,13 @@
 
     @keyframes float {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(22px); }
+      50% { transform: translateY(36px); }
     }
 
     @keyframes orb-glow {
-      0% { opacity: 0.5; filter: blur(12px) hue-rotate(0deg); }
-      50% { opacity: 0.95; filter: blur(18px) hue-rotate(22deg); }
-      100% { opacity: 0.5; filter: blur(12px) hue-rotate(0deg); }
+      0% { opacity: 0.6; filter: blur(6px) hue-rotate(0deg); }
+      50% { opacity: 1; filter: blur(16px) hue-rotate(32deg); }
+      100% { opacity: 0.6; filter: blur(6px) hue-rotate(0deg); }
     }
 
     @keyframes card-pixels {
@@ -522,10 +574,6 @@
         justify-content: flex-start;
       }
 
-      :root {
-        --obscure-scale: 0.4;
-      }
-
       .actions {
         flex-direction: column;
         align-items: stretch;
@@ -543,6 +591,14 @@
     <div class="orb alt"></div>
     <div class="orb tertiary"></div>
     <div class="orb quarter"></div>
+    <div class="orb small-a"></div>
+    <div class="orb small-b"></div>
+    <div class="orb small-c"></div>
+    <div class="orb small-d"></div>
+    <div class="orb small-e"></div>
+    <div class="orb small-f"></div>
+    <div class="orb small-g"></div>
+    <div class="orb small-h"></div>
 
     <header>
       <div class="logo">DSGVO-Pixeler</div>
@@ -569,10 +625,9 @@
     </header>
 
     <section class="hero">
-      <div class="hero-obscure" aria-hidden="true"></div>
       <div>
         <span class="tag stagger">Automatisches DSGVO-Tool</span>
-        <h1 class="stagger delay-1">Verpixeln, anonymisieren, liefern – in Sekunden.</h1>
+        <h1 class="stagger delay-1">Automatisches Verpixeln von Gesichtern und Kennzeichen in Videos</h1>
         <p class="stagger delay-2">DSGVO-Pixeler erkennt sensible Bildbereiche, verpixelt sie automatisch und sorgt für konsistente Ausgaben. Ideal für YouTube, Screenshots, Datensätze oder Support-Dokumente.</p>
         <div class="actions stagger delay-3">
           <a class="btn" href="https://github.com/LinuxLinusDE/DSGVO-Pixeler/" target="_blank" rel="noreferrer">Projekt auf GitHub</a>
@@ -799,6 +854,22 @@
           <summary>Was ist der Standardwert für Tiling?</summary>
           <p>Standard ist <code>--tiling 2</code> (2x2 Raster) für bessere Erkennung kleiner Kennzeichen.</p>
         </details>
+        <details>
+          <summary>Welche Modelle werden standardmäßig verwendet?</summary>
+          <p>Alle <code>.pt</code>-Dateien in <code>models/plates/</code> und <code>models/faces/</code> werden automatisch genutzt.</p>
+        </details>
+        <details>
+          <summary>Wie entferne ich die Audiospur?</summary>
+          <p>Nutze <code>--no_audio</code>, dann wird das Output-Video ohne Audio erzeugt.</p>
+        </details>
+        <details>
+          <summary>Wie bekomme ich kleinere oder größere Pixel?</summary>
+          <p>Stelle <code>--blocks_plates</code> und <code>--blocks_faces</code> ein (größerer Wert = grobere Pixel).</p>
+        </details>
+        <details>
+          <summary>Warum dauert Tiling deutlich länger?</summary>
+          <p>Beim Tiling läuft YOLO auf jeder Kachel – das erhöht die Rechenzeit, verbessert aber kleine Objekte.</p>
+        </details>
       </div>
     </section>
 
@@ -857,34 +928,5 @@
       <div>DSGVO-Pixeler – Moderne Verpixelung für sensible Bilddaten.</div>
     </footer>
   </div>
-  <script>
-    (() => {
-      const root = document.documentElement;
-      const hero = document.querySelector(".hero");
-      if (!hero) return;
-
-      let ticking = false;
-      const update = () => {
-        const start = hero.offsetHeight * 0.35;
-        const max = Math.max(1, hero.offsetHeight * 0.8);
-        const scale = parseFloat(getComputedStyle(root).getPropertyValue("--obscure-scale")) || 1;
-        const raw = (window.scrollY - start) / max;
-        const value = Math.min(1, Math.max(0, raw)) * scale;
-        root.style.setProperty("--obscure", value.toFixed(3));
-        ticking = false;
-      };
-
-      const onScroll = () => {
-        if (!ticking) {
-          ticking = true;
-          window.requestAnimationFrame(update);
-        }
-      };
-
-      window.addEventListener("scroll", onScroll, { passive: true });
-      window.addEventListener("resize", update);
-      update();
-    })();
-  </script>
 </body>
 </html>
