@@ -47,6 +47,29 @@ def pixelate_roi(img: np.ndarray, x1: int, y1: int, x2: int, y2: int, blocks: in
     img[y1:y2, x1:x2] = pixel
 
 
+def blur_roi(img: np.ndarray, x1: int, y1: int, x2: int, y2: int, ksize: int) -> None:
+    if x2 <= x1 or y2 <= y1:
+        return
+    roi = img[y1:y2, x1:x2]
+    rh, rw = roi.shape[:2]
+    if rh == 0 or rw == 0:
+        return
+    k = max(1, int(ksize))
+    if k % 2 == 0:
+        k += 1
+    max_k = min(rw, rh)
+    if max_k % 2 == 0:
+        max_k -= 1
+    if max_k < 1:
+        return
+    if k > max_k:
+        k = max_k
+    if k <= 1:
+        return
+    blurred = cv2.GaussianBlur(roi, (k, k), 0)
+    img[y1:y2, x1:x2] = blurred
+
+
 def boxes_overlap(a: Tuple[int, int, int, int], b: Tuple[int, int, int, int]) -> bool:
     ax1, ay1, ax2, ay2 = a
     bx1, by1, bx2, by2 = b
@@ -171,12 +194,13 @@ PRESETS = {
     "balanced": {"conf": 0.25, "imgsz": 1280, "work_w": 1920, "blocks_plates": 16, "blocks_faces": 24, "pad": 20, "bitrate": "auto"},
     "quality": {"conf": 0.2, "imgsz": 1600, "work_w": 0, "blocks_plates": 16, "blocks_faces": 24, "pad": 24, "bitrate": "auto"},
 }
+DEFAULT_BLUR_KSIZE = 80
 
 
 def parse_args() -> argparse.Namespace:
     balanced = PRESETS["balanced"]
     p = argparse.ArgumentParser(
-        description="Kennzeichen in Videos erkennen und verpixeln (Apple Silicon/MPS).",
+        description="Kennzeichen und Gesichter in Videos erkennen und anonymisieren (Apple Silicon/MPS).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p.add_argument("--input", help="Input-Video (MP4)")
@@ -208,19 +232,31 @@ def parse_args() -> argparse.Namespace:
         "--blocks",
         type=int,
         default=None,
-        help="Pixel-Blockgroesse (deprecated, groesser = grober). Empfohlen: 4-64",
+        help="Pixel-Blockgroesse (deprecated, nur pixelate, groesser = grober). Empfohlen: 4-64",
     )
     p.add_argument(
         "--blocks_plates",
         type=int,
         default=None,
-        help=f"Pixel-Blockgroesse fuer Kennzeichen (groesser = grober). Default (preset balanced): {balanced['blocks_plates']}. Empfohlen: 4-64",
+        help=f"Pixel-Blockgroesse fuer Kennzeichen (nur pixelate, groesser = grober). Default (preset balanced): {balanced['blocks_plates']}. Empfohlen: 4-64",
     )
     p.add_argument(
         "--blocks_faces",
         type=int,
         default=None,
-        help=f"Pixel-Blockgroesse fuer Gesichter (groesser = grober). Default (preset balanced): {balanced['blocks_faces']}. Empfohlen: 4-64",
+        help=f"Pixel-Blockgroesse fuer Gesichter (nur pixelate, groesser = grober). Default (preset balanced): {balanced['blocks_faces']}. Empfohlen: 4-64",
+    )
+    p.add_argument(
+        "--anonymize",
+        choices=["pixelate", "blur"],
+        default="blur",
+        help="Anonymisierung: pixelate|blur (Standard: blur)",
+    )
+    p.add_argument(
+        "--blur_ksize",
+        type=int,
+        default=DEFAULT_BLUR_KSIZE,
+        help=f"Blur-Staerke (Kernel-Size, gerade Werte werden auf ungerade aufgerundet). Standard: {DEFAULT_BLUR_KSIZE}",
     )
     p.add_argument(
         "--pad",
@@ -374,6 +410,8 @@ def validate_args(args: argparse.Namespace) -> Tuple[bool, list]:
     for name, value in [("blocks", args.blocks), ("blocks_plates", args.blocks_plates), ("blocks_faces", args.blocks_faces)]:
         if value is not None and value <= 0:
             errors.append(f"Ungueltiger Wert fuer --{name} (muss > 0 sein).")
+    if args.blur_ksize is not None and args.blur_ksize <= 0:
+        errors.append("Ungueltiger Wert fuer --blur_ksize (muss > 0 sein).")
     if args.pad is not None and args.pad < 0:
         errors.append("Ungueltiger Wert fuer --pad (muss >= 0 sein).")
     if args.snapshot_every is not None and args.snapshot_every < 0:
@@ -430,6 +468,8 @@ def apply_loaded_preset(args: argparse.Namespace, params: dict) -> None:
         "blocks": "--blocks",
         "blocks_plates": "--blocks_plates",
         "blocks_faces": "--blocks_faces",
+        "anonymize": "--anonymize",
+        "blur_ksize": "--blur_ksize",
         "pad": "--pad",
         "codec": "--codec",
         "bitrate": "--bitrate",
@@ -478,6 +518,8 @@ def save_preset_files(args: argparse.Namespace) -> None:
         "blocks": args.blocks,
         "blocks_plates": args.blocks_plates,
         "blocks_faces": args.blocks_faces,
+        "anonymize": args.anonymize,
+        "blur_ksize": args.blur_ksize,
         "pad": args.pad,
         "codec": args.codec,
         "bitrate": args.bitrate,
@@ -540,7 +582,7 @@ def build_output_path(args: argparse.Namespace, ts: str) -> str:
 
 def main() -> int:
     if len(sys.argv) == 1:
-        print("DSGVO-Pixeler - Kennzeichen & Gesichter verpixeln (einfacher Start)")
+        print("DSGVO-Pixeler - Kennzeichen & Gesichter anonymisieren (einfacher Start)")
         print("Vorbereitung (einmalig):")
         print("  python3 -m venv .venv")
         print("  source .venv/bin/activate")
@@ -549,7 +591,7 @@ def main() -> int:
         print("Beispiel:")
         print("  python dsgvo-pixeler.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt")
         print("Kurz-Erklaerung:")
-        print("  Erkennt Kennzeichen und Gesichter im Video und verpixelt sie fuer Datenschutz.")
+        print("  Erkennt Kennzeichen und Gesichter im Video und anonymisiert sie fuer Datenschutz.")
         print("Wichtige Optionen (kurz):")
         print("  --codec hevc|h264     (Standard: hevc)")
         print("  --preset fast|balanced|quality")
@@ -557,6 +599,8 @@ def main() -> int:
         print("  --work_w 1920         (schneller, etwas weniger genau)")
         print("  --imgsz 1280          (bessere Erkennung, langsamer)")
         print("  --conf 0.25           (niedriger = mehr Treffer)")
+        print("  --anonymize blur|pixelate (Standard: blur)")
+        print("  --blur_ksize 80       (Blur-Staerke, gerade Werte werden auf ungerade aufgerundet)")
         print("  --blocks_plates 16    (Kennzeichen, groesser = grober)")
         print("  --blocks_faces 24     (Gesichter, groesser = grober)")
         print("  --blocks 16           (deprecated)")
@@ -571,8 +615,8 @@ def main() -> int:
         print("  --snapshot_size 1920x1080 (Snapshot-Groesse)")
         print("  --snapshot_dir /pfad/zu/ordner  (Default: Input-Ordner)")
         print("  --tiling 2            (2x2 Tiling fuer kleine Kennzeichen, default)")
-        print("  --no_plates           (nur Gesichter verpixeln)")
-        print("  --no_faces            (nur Kennzeichen verpixeln)")
+        print("  --no_plates           (nur Gesichter anonymisieren)")
+        print("  --no_faces            (nur Kennzeichen anonymisieren)")
         print("  --force_sw            (Software-Encoding erzwingen)")
         print("Weitere Hilfe:")
         print("  python dsgvo-pixeler.py -h")
@@ -853,8 +897,11 @@ def main() -> int:
                             bx1, by1, bx2, by2 = apply_pad(bx1, by1, bx2, by2, args.pad, w, h)
                             if nz_list and any(boxes_overlap((bx1, by1, bx2, by2), nz) for nz in nz_list):
                                 continue
-                            blocks_val = args.blocks_faces if kind == "faces" else args.blocks_plates
-                            pixelate_roi(frame, bx1, by1, bx2, by2, blocks_val)
+                            if args.anonymize == "blur":
+                                blur_roi(frame, bx1, by1, bx2, by2, args.blur_ksize)
+                            else:
+                                blocks_val = args.blocks_faces if kind == "faces" else args.blocks_plates
+                                pixelate_roi(frame, bx1, by1, bx2, by2, blocks_val)
                             if args.debug_pixel:
                                 cv2.rectangle(frame, (bx1, by1), (bx2, by2), (0, 255, 0), 2)
 

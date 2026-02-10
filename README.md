@@ -1,5 +1,5 @@
 # DSGVO-Pixeler
-This tool processes 4K videos locally and automatically pixelates vehicle license plates and faces using YOLOv8. Optimized for Apple Silicon (M-series) and action-cam footage, it prioritizes data protection by reliably anonymizing sensitive visual information while preserving video quality and audio.
+This tool processes 4K videos locally and automatically anonymizes vehicle license plates and faces using YOLOv8 (pixelation or blur). Optimized for Apple Silicon (M-series) and action-cam footage, it prioritizes data protection by reliably anonymizing sensitive visual information while preserving video quality and audio.
 
 ## Featured demo (YouTube)
 [![DSGVO-Pixeler demo](https://img.youtube.com/vi/VYVoB2Qsij4/hqdefault.jpg)](https://youtu.be/VYVoB2Qsij4)
@@ -65,9 +65,10 @@ Detection
 - Plates + faces by default (YOLOv8). Can be disabled with `--no_plates` or `--no_faces`.
 - Uses all `.pt` models in `models/plates/` and `models/faces/` by default.
 
-Pixelation
-- True mosaic pixelation (not blur).
-- Separate pixel strength for plates and faces: `--blocks_plates`, `--blocks_faces`.
+Anonymization
+- Choose between pixelation (mosaic) and blur: `--anonymize pixelate|blur` (default: blur).
+- Pixelation strength: `--blocks_plates`, `--blocks_faces` (pixelate only).
+- Blur strength: `--blur_ksize` (odd kernel size).
 - Optional padding around boxes: `--pad`.
 
 Tiling
@@ -116,6 +117,16 @@ python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output.mp4 \
   --weights /path/to/plate_model.pt
+```
+
+Blur anonymization (compare with pixelation):
+```bash
+python dsgvo-pixeler.py \
+  --input input.mp4 \
+  --output output_blur.mp4 \
+  --weights /path/to/plate_model.pt \
+  --anonymize blur \
+  --blur_ksize 80
 ```
 
 H.264 compatible output (plays everywhere, recommend 50M for best quality):
@@ -271,6 +282,8 @@ Preset names are derived from the input filename (e.g. `source.mp4` -> `source_p
 - `force_sw`: force software encoding.
 - `test_minutes`: process only the first N minutes (0 = full video). Default: 0. Recommended: 0-60.
 - `preset`: `fast`, `balanced`, `quality` for quick speed/quality choice.
+- `anonymize`: `pixelate` or `blur` (default: `blur`).
+- `blur_ksize`: blur strength (even values are rounded up to the next odd kernel size).
 - `debug_pixel`: draws green boxes for verification.
 - `debug_no_pixel`: draws the no-pixel zones in red.
 - `no_audio`: remove the audio track in the output.
@@ -286,8 +299,8 @@ Preset names are derived from the input filename (e.g. `source.mp4` -> `source_p
 - `faces_weights`: list of face models (default: all in `models/faces/`).
 - `weights`: list of plate models (default: all in `models/plates/`).
 - `extra_weights`: list of extra models (or `--use_extra` for `models/extra/`).
-- `no_faces`: do not pixelate faces.
-- `no_plates`: do not pixelate plates.
+- `no_faces`: do not anonymize faces.
+- `no_plates`: do not anonymize plates.
 
 ## Simple usage steps
 1) Put your video (e.g. `input.mp4`) into the project folder and weights into `models/plates/` (e.g. `models/plates/best.pt`).
@@ -310,7 +323,7 @@ What is the default tiling value?
 `--tiling` defaults to `2` (2x2 tiling).
 
 ## Insta360 note
-Recommendation: reframe/flat export to 16:9 in Insta360 Studio first, then pixelate.
+Recommendation: reframe/flat export to 16:9 in Insta360 Studio first, then anonymize.
 
 ## Troubleshooting
 VideoToolbox error -12908 (HW encoding fails): often caused by pixel format negotiation. The script forces `nv12` for VideoToolbox. You can test:

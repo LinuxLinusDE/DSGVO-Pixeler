@@ -1,5 +1,5 @@
 # DSGVO-Pixeler
-Dieses Tool verarbeitet 4K-Videos lokal und verpixelt automatisch Kfz-Kennzeichen und Gesichter mit YOLOv8. Optimiert fuer Apple Silicon (M-Serie) und Action-Cam-Footage, priorisiert es Datenschutz durch zuverlaessige Anonymisierung sensibler Bildinhalte bei Erhalt von Videoqualitaet und Audio.
+Dieses Tool verarbeitet 4K-Videos lokal und anonymisiert automatisch Kfz-Kennzeichen und Gesichter mit YOLOv8 (Verpixeln oder Weichzeichnen). Optimiert fuer Apple Silicon (M-Serie) und Action-Cam-Footage, priorisiert es Datenschutz durch zuverlaessige Anonymisierung sensibler Bildinhalte bei Erhalt von Videoqualitaet und Audio.
 
 ## Demo (YouTube)
 [![DSGVO-Pixeler Demo](https://img.youtube.com/vi/VYVoB2Qsij4/hqdefault.jpg)](https://youtu.be/VYVoB2Qsij4)
@@ -65,9 +65,10 @@ Erkennung
 - Kennzeichen + Gesichter standardmaessig aktiv (YOLOv8). Abschaltbar mit `--no_plates` oder `--no_faces`.
 - Standard: alle `.pt` Modelle in `models/plates/` und `models/faces/`.
 
-Verpixelung
-- Echte Mosaik-Pixel (kein Blur).
-- Separate Staerke: `--blocks_plates`, `--blocks_faces`.
+Anonymisierung
+- Auswahl zwischen Verpixelung (Mosaik) und Weichzeichnen: `--anonymize pixelate|blur` (Standard: blur).
+- Verpixelung-Staerke: `--blocks_plates`, `--blocks_faces` (nur pixelate).
+- Blur-Staerke: `--blur_ksize` (ungerade Kernel-Groesse).
 - Optionaler Sicherheitsrand: `--pad`.
 
 Tiling
@@ -116,6 +117,16 @@ python dsgvo-pixeler.py \
   --input input.mp4 \
   --output output.mp4 \
   --weights /path/to/plate_model.pt
+```
+
+Weichzeichnen (zum Vergleich mit Verpixelung):
+```bash
+python dsgvo-pixeler.py \
+  --input input.mp4 \
+  --output output_blur.mp4 \
+  --weights /path/to/plate_model.pt \
+  --anonymize blur \
+  --blur_ksize 80
 ```
 
 H264 kompatibler Output (lauft fast ueberall, empfehle 50M fuer beste Qualitaet):
@@ -279,6 +290,8 @@ Preset-Namen leiten sich vom Input-Dateinamen ab (z. B. `source.mp4` -> `source_
 - `force_sw`: Software-Encoding erzwingen (nuetzlich, wenn VideoToolbox zickt).
 - `test_minutes`: Nur die ersten N Minuten verarbeiten (0 = alles). Default: 0. Empfohlen: 0-60.
 - `preset`: `fast`, `balanced`, `quality` fuer einfache Speed/Qualitaets-Wahl.
+- `anonymize`: `pixelate` oder `blur` (Standard: `blur`).
+- `blur_ksize`: Blur-Staerke (gerade Werte werden auf ungerade aufgerundet).
 - `debug_pixel`: Zeichnet gruene Boxen zur Kontrolle ins Video.
 - `debug_no_pixel`: Zeichnet die No-Pixel-Zonen rot ins Video.
 - `no_audio`: Entfernt die Audiospur im Output.
@@ -294,8 +307,8 @@ Preset-Namen leiten sich vom Input-Dateinamen ab (z. B. `source.mp4` -> `source_
 - `faces_weights`: Liste der Gesichtsmodelle (Default: alle in `models/faces/`).
 - `weights`: Liste der Kennzeichenmodelle (Default: alle in `models/plates/`).
 - `extra_weights`: Liste zusaetzlicher Modelle (oder `--use_extra` fuer `models/extra/`).
-- `no_faces`: Gesichter nicht verpixeln.
-- `no_plates`: Kennzeichen nicht verpixeln.
+- `no_faces`: Gesichter nicht anonymisieren.
+- `no_plates`: Kennzeichen nicht anonymisieren.
 
 ## Bedienung in einfachen Worten
 1) Lege dein Video (z. B. `input.mp4`) in den Projektordner und die Gewichte in `models/plates/` (z. B. `models/plates/best.pt`).
@@ -318,7 +331,7 @@ Was ist der Standardwert fuer Tiling?
 `--tiling` steht standardmaessig auf `2` (2x2 Tiling).
 
 ## Hinweis zu Insta360
-Empfehlung: In Insta360 Studio zuerst reframen/flat exportieren (16:9), dann mit diesem Tool verpixeln.
+Empfehlung: In Insta360 Studio zuerst reframen/flat exportieren (16:9), dann mit diesem Tool anonymisieren.
 
 ## Troubleshooting
 VideoToolbox Fehler -12908 (HW-Encoding schlaegt fehl): Ursache ist oft Pixel-Format-Negotiation. Stelle sicher, dass ein VT-kompatibles Format (nv12) genutzt wird. Das Script setzt dies automatisch fuer VideoToolbox. Falls es dennoch scheitert, teste per ffmpeg:
