@@ -284,7 +284,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--snapshot_every",
         type=int,
-        default=0,
+        default=1,
         help="Snapshot alle N Minuten (0 = aus). Empfohlen: 0-60",
     )
     p.add_argument("--snapshot_dir", default="", help="Snapshot-Ordner (Default: Input-Ordner)")

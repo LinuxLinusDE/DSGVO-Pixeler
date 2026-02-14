@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DSGVO-Pixeler Command Builder</title>
+  <meta name="description" content="Lokaler Command-Generator fuer DSGVO-Pixeler inklusive Pixel-Zonen-Koordinaten aus Bilddateien." />
+  <style>
+    :root {
+      --bg-0: #09111f;
+      --bg-1: #10243d;
+      --bg-2: #173253;
+      --ink: #f3f6fb;
+      --muted: #b0c1d8;
+      --line: rgba(255, 255, 255, 0.14);
+      --card: rgba(9, 19, 35, 0.78);
+      --accent: #f8b84e;
+      --accent-2: #5dd4c2;
+      --ok: #7de39c;
+      --err: #ff8c8c;
+      --warn: #ffd27a;
+      --shadow: 0 26px 70px rgba(2, 8, 17, 0.52);
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(1000px 580px at 2% -5%, rgba(248, 184, 78, 0.18), transparent 62%),
+        radial-gradient(900px 700px at 94% -10%, rgba(93, 212, 194, 0.19), transparent 60%),
+        linear-gradient(155deg, var(--bg-0), var(--bg-1) 44%, var(--bg-2));
+      font-family: "Avenir Next", "Trebuchet MS", "Candara", sans-serif;
+      line-height: 1.4;
+    }
+
+    .layout {
+      width: min(1500px, 96vw);
+      margin: 24px auto 42px;
+      animation: rise 380ms ease-out both;
+    }
+
+    .hero {
+      margin-bottom: 18px;
+      padding: 18px 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(160deg, rgba(16, 35, 58, 0.72), rgba(12, 28, 48, 0.62));
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(25px, 3vw, 36px);
+      letter-spacing: 0.3px;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(9, 18, 32, 0.78);
+      gap: 4px;
+      align-self: start;
+    }
+
+    .lang-switch button {
+      border: 0;
+      border-radius: 999px;
+      padding: 7px 14px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.2px;
+    }
+
+    .lang-switch button.active {
+      background: linear-gradient(140deg, rgba(248, 184, 78, 0.92), rgba(255, 219, 145, 0.92));
+      color: #1b1a13;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      letter-spacing: 0.25px;
+    }
+
+    .subtle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-groups {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .form-group {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(9, 20, 36, 0.5);
+      padding: 12px;
+    }
+
+    .form-group h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      letter-spacing: 0.2px;
+    }
+
+    .form-group > .subtle {
+      margin: 0 0 10px;
+      font-size: 13px;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+      align-content: start;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      color: var(--ink);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(8, 16, 30, 0.8);
+      border-radius: var(--radius-sm);
+      font: inherit;
+      outline: none;
+      padding: 10px 12px;
+      transition: border-color 160ms ease, transform 160ms ease;
+    }
+
+    input[type="checkbox"] {
+      transform: translateY(1px);
+      accent-color: var(--accent-2);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: rgba(248, 184, 78, 0.88);
+      transform: translateY(-1px);
+    }
+
+    #inputPath.dragover {
+      border-color: rgba(93, 212, 194, 0.95);
+      box-shadow: 0 0 0 3px rgba(93, 212, 194, 0.22);
+    }
+
+    .help {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .checks {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(210px, 1fr));
+      gap: 8px 12px;
+      margin-top: 6px;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    details {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(8, 16, 29, 0.45);
+      margin-top: 14px;
+      overflow: hidden;
+    }
+
+    details > summary {
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+      padding: 12px 13px;
+      font-weight: 700;
+      background: rgba(14, 31, 51, 0.85);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    details > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .details-body {
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 160ms ease, filter 160ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    .btn.primary {
+      background: linear-gradient(140deg, var(--accent), #ffd58f);
+      color: #1e1a0d;
+    }
+
+    .btn.ghost {
+      background: rgba(13, 26, 43, 0.88);
+      color: var(--ink);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .zone-top {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 10px;
+    }
+
+    .zone-meta {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr;
+      margin-top: 10px;
+    }
+
+    .meta-box {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      background: rgba(8, 15, 29, 0.7);
+      min-height: 50px;
+    }
+
+    .meta-title {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .meta-value {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .canvas-wrap {
+      margin-top: 10px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background:
+        linear-gradient(45deg, rgba(10, 19, 33, 0.96) 25%, rgba(15, 29, 48, 0.96) 25%, rgba(15, 29, 48, 0.96) 50%, rgba(10, 19, 33, 0.96) 50%, rgba(10, 19, 33, 0.96) 75%, rgba(15, 29, 48, 0.96) 75%, rgba(15, 29, 48, 0.96));
+      background-size: 22px 22px;
+      min-height: 230px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      cursor: crosshair;
+    }
+
+    .canvas-wrap.dragover {
+      border-color: rgba(93, 212, 194, 0.95);
+      box-shadow: inset 0 0 0 2px rgba(93, 212, 194, 0.42);
+    }
+
+    #zoneCanvas {
+      max-width: 100%;
+      max-height: 520px;
+      display: block;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .canvas-hint {
+      text-align: center;
+      color: var(--muted);
+      padding: 16px;
+      font-size: 14px;
+      pointer-events: none;
+      cursor: crosshair;
+    }
+
+    .zone-list {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .zone-row {
+      display: grid;
+      grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+    }
+
+    .zone-tag {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: left;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .invalid {
+      border-color: rgba(255, 80, 80, 0.95) !important;
+      box-shadow: inset 0 0 0 1px rgba(255, 80, 80, 0.48);
+    }
+
+    .output-area {
+      min-height: 168px;
+      resize: vertical;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.35;
+      white-space: pre;
+    }
+
+    .status {
+      margin: 8px 0 0;
+      font-size: 13px;
+      min-height: 18px;
+    }
+
+    .status.info {
+      color: var(--muted);
+    }
+
+    .status.ok {
+      color: var(--ok);
+    }
+
+    .status.warn {
+      color: var(--warn);
+    }
+
+    .status.err {
+      color: var(--err);
+    }
+
+    .note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .right-stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    @media (max-width: 1050px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      .hero {
+        grid-template-columns: 1fr;
+      }
+      .zone-top {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+      .checks {
+        grid-template-columns: 1fr;
+      }
+      .zone-row {
+        grid-template-columns: 1fr;
+      }
+      .zone-tag {
+        text-align: left;
+      }
+      .zone-meta {
+        grid-template-columns: 1fr;
+      }
+      .layout {
+        width: min(1300px, 96vw);
+      }
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <header class="hero">
+      <div>
+        <h1 data-i18n="title">DSGVO-Pixeler Command Builder</h1>
+        <p data-i18n="subtitle">Lokaler Konfigurator fuer den finalen CLI-Befehl. Alles laeuft im Browser, ohne Server.</p>
+      </div>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button type="button" class="active" data-lang="de">DE</button>
+        <button type="button" data-lang="en">EN</button>
+      </div>
+    </header>
+
+    <section class="main-grid">
+      <form id="builderForm" class="card" autocomplete="off">
+        <h2 data-i18n="section_basic">Konfiguration</h2>
+        <p class="subtle" data-i18n="section_basic_help">Die wichtigsten Einstellungen sind nach Themen gruppiert.</p>
+
+        <div class="form-groups">
+          <section class="form-group">
+            <h3 data-i18n="group_io">Ein- und Ausgabe</h3>
+            <p class="subtle" data-i18n="group_io_help">Dateipfade fuer Quelle und Zielvideo.</p>
+            <div class="field-grid">
+              <div class="field full">
+                <label for="inputPath" data-i18n="label_input">Input Video</label>
+                <input id="inputPath" type="text" data-i18n-placeholder="ph_input" placeholder="z.B. /videos/input.mp4" />
+                <div class="help" data-i18n="help_input">Pflichtfeld. Pfad zur Quelldatei (MP4). Drag-and-Drop auf dieses Feld versucht den Pfad zu uebernehmen.</div>
+              </div>
+
+              <div class="field full">
+                <label for="outputPath" data-i18n="label_output">Output Video</label>
+                <input id="outputPath" type="text" data-i18n-placeholder="ph_output" placeholder="z.B. /videos/output.mp4" />
+                <div class="help" data-i18n="help_output">Optional. Wenn leer, erzeugt das Script selbst einen Dateinamen.</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-group">
+            <h3 data-i18n="group_quality">Videoqualitaet</h3>
+            <p class="subtle" data-i18n="group_quality_help">Preset, Codec und Snapshot-Verhalten.</p>
+            <div class="field-grid">
+              <div class="field">
+                <label for="preset" data-i18n="label_preset">Preset</label>
+                <select id="preset">
+                  <option value="balanced" data-i18n="opt_preset_balanced">balanced (default)</option>
+                  <option value="fast" data-i18n="opt_preset_fast">fast</option>
+                  <option value="quality" data-i18n="opt_preset_quality">quality</option>
+                </select>
+                <div class="help" data-i18n="help_preset">Schneller Einstieg fuer Speed/Qualitaet. Default ist balanced.</div>
+              </div>
+
+              <div class="field">
+                <label for="codec" data-i18n="label_codec">Codec</label>
+                <select id="codec">
+                  <option value="hevc">hevc (default)</option>
+                  <option value="h264">h264</option>
+                </select>
+                <div class="help" data-i18n="help_codec">hevc ist effizient. h264 ist kompatibler.</div>
+              </div>
+
+              <div class="field">
+                <label for="bitrate" data-i18n="label_bitrate">Bitrate</label>
+                <input id="bitrate" type="text" data-i18n-placeholder="ph_bitrate" placeholder="z.B. auto oder 50M" />
+                <div class="help" data-i18n="help_bitrate">Leer = Preset-Wert. Werte wie 50M sind moeglich.</div>
+              </div>
+
+              <div class="field">
+                <label for="snapshotEvery" data-i18n="label_snapshot_every">snapshot_every</label>
+                <input id="snapshotEvery" type="number" min="0" value="1" />
+                <div class="help" data-i18n="help_snapshot_every">Snapshot alle N Minuten (0 = aus).</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-group">
+            <h3 data-i18n="group_pixel">Verpixelung</h3>
+            <p class="subtle" data-i18n="group_pixel_help">Anonymisierungsart und erkannte Zieltypen.</p>
+            <div class="field-grid">
+              <div class="field">
+                <label for="anonymize" data-i18n="label_anonymize">Anonymisierung</label>
+                <select id="anonymize">
+                  <option value="blur" data-i18n="opt_anonymize_blur">blur (default)</option>
+                  <option value="pixelate" data-i18n="opt_anonymize_pixelate">pixelate</option>
+                </select>
+                <div class="help" data-i18n="help_anonymize">blur ist Standard. pixelate nutzt Blockgroessen.</div>
+              </div>
+            </div>
+
+            <div class="checks" aria-label="Detection Flags">
+              <label class="check-item"><input id="noPlates" type="checkbox" /> <span data-i18n="flag_no_plates">--no_plates (Kennzeichen deaktivieren)</span></label>
+              <label class="check-item"><input id="noFaces" type="checkbox" /> <span data-i18n="flag_no_faces">--no_faces (Gesichter deaktivieren)</span></label>
+            </div>
+          </section>
+
+          <section class="form-group">
+            <h3 data-i18n="group_test_debug">Testoptionen und Debug</h3>
+            <p class="subtle" data-i18n="group_test_debug_help">Kurze Testlaeufe und technische Debug-Overlays.</p>
+            <div class="field-grid">
+              <div class="field">
+                <label for="testMinutes" data-i18n="label_test_minutes">test_minutes</label>
+                <input id="testMinutes" type="number" min="0" data-i18n-placeholder="ph_test_minutes" placeholder="z.B. 1" />
+                <div class="help" data-i18n="help_test_minutes">Optional. Nur die ersten N Minuten verarbeiten (0 = ganzes Video).</div>
+              </div>
+            </div>
+
+            <div class="checks" aria-label="Debug Flags">
+              <label class="check-item"><input id="debugPixel" type="checkbox" /> <span data-i18n="flag_debug_pixel">--debug_pixel (gruene Erkennungsboxen)</span></label>
+              <label class="check-item"><input id="debugNoPixel" type="checkbox" /> <span data-i18n="flag_debug_no_pixel">--debug_no_pixel (rote No-Pixel-Zonen)</span></label>
+              <label class="check-item"><input id="noTrack" type="checkbox" /> <span data-i18n="flag_no_track">--no_track (Tracking aus)</span></label>
+              <label class="check-item"><input id="noAudio" type="checkbox" /> <span data-i18n="flag_no_audio">--no_audio (Audio entfernen)</span></label>
+              <label class="check-item"><input id="forceSw" type="checkbox" /> <span data-i18n="flag_force_sw">--force_sw (Software-Encoding)</span></label>
+            </div>
+          </section>
+        </div>
+
+        <details>
+          <summary data-i18n="section_advanced">Erweitert</summary>
+          <div class="details-body">
+            <section class="form-group">
+              <h3 data-i18n="group_tuning">Feinabstimmung</h3>
+              <p class="subtle" data-i18n="group_tuning_help">Erkennungsparameter, Performance und technische Details.</p>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="device" data-i18n="label_device">Device</label>
+                  <input id="device" type="text" value="mps" />
+                  <div class="help" data-i18n="help_device">Ultralytics Device, z.B. mps oder cpu.</div>
+                </div>
+
+                <div class="field">
+                  <label for="conf" data-i18n="label_conf">Confidence</label>
+                  <input id="conf" type="number" step="0.01" min="0" max="1" data-i18n-placeholder="ph_conf" placeholder="z.B. 0.25" />
+                  <div class="help" data-i18n="help_conf">Empfohlen 0.1-0.6. Leer = Preset-Default.</div>
+                </div>
+
+                <div class="field">
+                  <label for="imgsz" data-i18n="label_imgsz">imgsz</label>
+                  <input id="imgsz" type="number" min="0" data-i18n-placeholder="ph_imgsz" placeholder="z.B. 1280" />
+                  <div class="help" data-i18n="help_imgsz">YOLO Inferenzgroesse. Hoeher = genauer, langsamer.</div>
+                </div>
+
+                <div class="field">
+                  <label for="workW" data-i18n="label_work_w">work_w</label>
+                  <input id="workW" type="number" min="0" data-i18n-placeholder="ph_work_w" placeholder="z.B. 1920 oder 0" />
+                  <div class="help" data-i18n="help_work_w">Detektionsbreite. 0 = Originalbreite.</div>
+                </div>
+
+                <div class="field">
+                  <label for="pad" data-i18n="label_pad">pad</label>
+                  <input id="pad" type="number" min="0" data-i18n-placeholder="ph_pad" placeholder="z.B. 20" />
+                  <div class="help" data-i18n="help_pad">Sicherheitsrand um erkannte Boxen in Pixeln.</div>
+                </div>
+
+                <div class="field">
+                  <label for="blurKsize" data-i18n="label_blur_ksize">blur_ksize</label>
+                  <input id="blurKsize" type="number" min="1" value="80" />
+                  <div class="help" data-i18n="help_blur_ksize">Nur bei blur. Gerade Werte werden intern auf ungerade gesetzt.</div>
+                </div>
+
+                <div class="field">
+                  <label for="blocksPlates" data-i18n="label_blocks_plates">blocks_plates</label>
+                  <input id="blocksPlates" type="number" min="1" data-i18n-placeholder="ph_blocks_plates" placeholder="z.B. 16" />
+                  <div class="help" data-i18n="help_blocks_plates">Nur bei pixelate. Groesser = grober.</div>
+                </div>
+
+                <div class="field">
+                  <label for="blocksFaces" data-i18n="label_blocks_faces">blocks_faces</label>
+                  <input id="blocksFaces" type="number" min="1" data-i18n-placeholder="ph_blocks_faces" placeholder="z.B. 24" />
+                  <div class="help" data-i18n="help_blocks_faces">Nur bei pixelate. Groesser = grober.</div>
+                </div>
+
+                <div class="field">
+                  <label for="blocksDeprecated" data-i18n="label_blocks_deprecated">blocks (deprecated)</label>
+                  <input id="blocksDeprecated" type="number" min="1" data-i18n-placeholder="ph_blocks_deprecated" placeholder="optional" />
+                  <div class="help" data-i18n="help_blocks_deprecated">Altes Feld. Besser blocks_plates und blocks_faces nutzen.</div>
+                </div>
+
+                <div class="field">
+                  <label for="tiling" data-i18n="label_tiling">tiling</label>
+                  <input id="tiling" type="number" min="1" max="10" value="2" />
+                  <div class="help" data-i18n="help_tiling">1 = aus, 2 = 2x2. Mehr hilft bei kleinen Objekten, kostet Zeit.</div>
+                </div>
+
+                <div class="field">
+                  <label for="logEvery" data-i18n="label_log_every">log_every</label>
+                  <input id="logEvery" type="number" min="0" value="200" />
+                  <div class="help" data-i18n="help_log_every">Statusausgabe alle N Frames.</div>
+                </div>
+
+                <div class="field">
+                  <label for="snapshotSize" data-i18n="label_snapshot_size">snapshot_size</label>
+                  <input id="snapshotSize" type="text" value="1920x1080" />
+                  <div class="help" data-i18n="help_snapshot_size">Format WIDTHxHEIGHT, z.B. 1920x1080.</div>
+                </div>
+
+                <div class="field full">
+                  <label for="snapshotDir" data-i18n="label_snapshot_dir">snapshot_dir</label>
+                  <input id="snapshotDir" type="text" data-i18n-placeholder="ph_snapshot_dir" placeholder="optional" />
+                  <div class="help" data-i18n="help_snapshot_dir">Optionales Zielverzeichnis fuer Snapshots.</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="form-group">
+              <h3 data-i18n="group_models">Modelle und Presets</h3>
+              <p class="subtle" data-i18n="group_models_help">Gewichte, Zusatzmodelle und gespeicherte Presets.</p>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="savePreset" data-i18n="label_save_preset">save_preset</label>
+                  <select id="savePreset">
+                    <option value="off" data-i18n="opt_save_preset_off">off (default)</option>
+                    <option value="json">json</option>
+                    <option value="txt">txt</option>
+                    <option value="both">both</option>
+                  </select>
+                  <div class="help" data-i18n="help_save_preset">Speichert Parameter als Preset im Output-Ordner.</div>
+                </div>
+
+                <div class="field">
+                  <label for="loadPreset" data-i18n="label_load_preset">load_preset</label>
+                  <input id="loadPreset" type="text" data-i18n-placeholder="ph_load_preset" placeholder="Dateipfad oder Name" />
+                  <div class="help" data-i18n="help_load_preset">Preset JSON laden (Datei oder Basisname).</div>
+                </div>
+
+                <div class="field full">
+                  <label for="weights" data-i18n="label_weights">Plate Weights</label>
+                  <input id="weights" type="text" data-i18n-placeholder="ph_weights" placeholder="z.B. models/plates/a.pt,models/plates/b.pt" />
+                  <div class="help" data-i18n="help_weights">Kommagetrennte Liste fuer Kennzeichen-Modelle.</div>
+                </div>
+
+                <div class="field full">
+                  <label for="facesWeights" data-i18n="label_faces_weights">Face Weights</label>
+                  <input id="facesWeights" type="text" data-i18n-placeholder="ph_faces_weights" placeholder="z.B. models/faces/face1.pt,models/faces/face2.pt" />
+                  <div class="help" data-i18n="help_faces_weights">Kommagetrennte Liste fuer Gesichts-Modelle.</div>
+                </div>
+
+                <div class="field full">
+                  <label for="extraWeights" data-i18n="label_extra_weights">Extra Weights</label>
+                  <input id="extraWeights" type="text" data-i18n-placeholder="ph_extra_weights" placeholder="z.B. models/extra/obj.pt" />
+                  <div class="help" data-i18n="help_extra_weights">Optionale Zusatz-Modelle (kommagetrennt). Leer = aus.</div>
+                </div>
+
+                <div class="field full">
+                  <label class="check-item">
+                    <input id="useExtra" type="checkbox" />
+                    <span data-i18n="flag_use_extra">--use_extra (alle models/extra/*.pt nutzen)</span>
+                  </label>
+                  <div class="help" data-i18n="help_use_extra">Optional. Standard ist deaktiviert.</div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </details>
+      </form>
+
+      <div class="right-stack">
+        <section class="card">
+          <h2 data-i18n="section_zones">No-Pixel-Zonen (x1,y1,x2,y2)</h2>
+          <p class="subtle" data-i18n="zones_help">Bild wird nur lokal im Browser verarbeitet, nichts wird hochgeladen.</p>
+
+          <div class="zone-top">
+            <div class="field">
+              <label for="zoneImage" data-i18n="label_zone_image">Bild laden</label>
+              <input id="zoneImage" type="file" accept="image/*" />
+              <div class="help" data-i18n="help_zone_image">Nutze ein Standbild mit derselben Aufloesung wie dein Video. Datei waehlen oder per Drag-and-Drop auf das Canvas ziehen.</div>
+            </div>
+
+            <div class="field">
+              <label for="zoneSlot" data-i18n="label_zone_slot">Aktive Zone</label>
+              <select id="zoneSlot">
+                <option value="1">Zone 1</option>
+                <option value="2">Zone 2</option>
+                <option value="3">Zone 3</option>
+                <option value="4">Zone 4</option>
+              </select>
+            </div>
+
+            <div class="actions">
+              <button id="clearActiveZoneBtn" class="btn ghost" type="button" data-i18n="btn_clear_active">Zone loeschen</button>
+              <button id="clearAllZonesBtn" class="btn ghost" type="button" data-i18n="btn_clear_all">Alle loeschen</button>
+            </div>
+          </div>
+
+          <div class="canvas-wrap">
+            <canvas id="zoneCanvas" width="1000" height="560" aria-label="Koordinaten-Canvas"></canvas>
+            <div id="canvasHint" class="canvas-hint" data-i18n="canvas_hint">Bild laden (oder auf das Feld ziehen) und Rechteck ziehen, um eine Zone zu setzen.</div>
+          </div>
+
+          <div class="zone-meta">
+            <div class="meta-box">
+              <div class="meta-title" data-i18n="meta_cursor">Cursor (Originalpixel)</div>
+              <div class="meta-value" id="cursorInfo">-</div>
+            </div>
+            <div class="meta-box">
+              <div class="meta-title" data-i18n="meta_selection">Aktuelle Auswahl</div>
+              <div class="meta-value" id="selectionInfo">-</div>
+            </div>
+          </div>
+
+          <div class="zone-list">
+            <div class="zone-row">
+              <div class="zone-tag">--no_pixel_zone_px1</div>
+              <input id="zone1" type="text" data-i18n-placeholder="ph_zone" placeholder="x1,y1,x2,y2" />
+            </div>
+            <div class="zone-row">
+              <div class="zone-tag">--no_pixel_zone_px2</div>
+              <input id="zone2" type="text" data-i18n-placeholder="ph_zone" placeholder="x1,y1,x2,y2" />
+            </div>
+            <div class="zone-row">
+              <div class="zone-tag">--no_pixel_zone_px3</div>
+              <input id="zone3" type="text" data-i18n-placeholder="ph_zone" placeholder="x1,y1,x2,y2" />
+            </div>
+            <div class="zone-row">
+              <div class="zone-tag">--no_pixel_zone_px4</div>
+              <input id="zone4" type="text" data-i18n-placeholder="ph_zone" placeholder="x1,y1,x2,y2" />
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 data-i18n="section_output">Finaler Befehl</h2>
+          <p class="subtle" data-i18n="output_help">Der komplette Command ist in einem Feld kopierbar.</p>
+          <textarea id="commandOutput" class="output-area" readonly></textarea>
+          <p id="commandStatus" class="status info"></p>
+          <div class="actions">
+            <button id="copyBtn" type="button" class="btn primary" data-i18n="btn_copy">Befehl kopieren</button>
+            <button id="resetBtn" type="button" class="btn ghost" data-i18n="btn_reset">Zuruecksetzen</button>
+          </div>
+          <p class="note" data-i18n="note_quote">Pfade mit Leerzeichen werden fuer bash/zsh korrekt gequotet.</p>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const i18n = {
+        de: {
+          title: "DSGVO-Pixeler Command Builder",
+          subtitle: "Lokaler Konfigurator fuer den finalen CLI-Befehl. Alles laeuft im Browser, ohne Server.",
+          section_basic: "Konfiguration",
+          section_basic_help: "Die wichtigsten Einstellungen sind nach Themen gruppiert.",
+          group_io: "Ein- und Ausgabe",
+          group_io_help: "Dateipfade fuer Quelle und Zielvideo.",
+          group_quality: "Videoqualitaet",
+          group_quality_help: "Preset, Codec und Snapshot-Verhalten.",
+          group_pixel: "Verpixelung",
+          group_pixel_help: "Anonymisierungsart und erkannte Zieltypen.",
+          group_test_debug: "Testoptionen und Debug",
+          group_test_debug_help: "Kurze Testlaeufe und technische Debug-Overlays.",
+          group_tuning: "Feinabstimmung",
+          group_tuning_help: "Erkennungsparameter, Performance und technische Details.",
+          group_models: "Modelle und Presets",
+          group_models_help: "Gewichte, Zusatzmodelle und gespeicherte Presets.",
+          label_input: "Input Video",
+          ph_input: "z.B. /videos/input.mp4",
+          help_input: "Pflichtfeld. Pfad zur Quelldatei (MP4). Drag-and-Drop auf dieses Feld versucht den Pfad zu uebernehmen.",
+          label_output: "Output Video",
+          ph_output: "z.B. /videos/output.mp4",
+          help_output: "Optional. Wenn leer, erzeugt das Script selbst einen Dateinamen.",
+          label_preset: "Preset",
+          opt_preset_balanced: "balanced (default)",
+          opt_preset_fast: "fast",
+          opt_preset_quality: "quality",
+          help_preset: "Schneller Einstieg fuer Speed/Qualitaet. Default ist balanced.",
+          label_anonymize: "Anonymisierung",
+          opt_anonymize_blur: "blur (default)",
+          opt_anonymize_pixelate: "pixelate",
+          help_anonymize: "blur ist Standard. pixelate nutzt Blockgroessen.",
+          label_codec: "Codec",
+          help_codec: "hevc ist effizient. h264 ist kompatibler.",
+          label_bitrate: "Bitrate",
+          ph_bitrate: "z.B. auto oder 50M",
+          help_bitrate: "Leer = Preset-Wert. Werte wie 50M sind moeglich.",
+          ph_test_minutes: "z.B. 1",
+          label_weights: "Plate Weights",
+          ph_weights: "z.B. models/plates/a.pt,models/plates/b.pt",
+          help_weights: "Kommagetrennte Liste fuer Kennzeichen-Modelle.",
+          label_faces_weights: "Face Weights",
+          ph_faces_weights: "z.B. models/faces/face1.pt,models/faces/face2.pt",
+          help_faces_weights: "Kommagetrennte Liste fuer Gesichts-Modelle.",
+          label_extra_weights: "Extra Weights",
+          ph_extra_weights: "z.B. models/extra/obj.pt",
+          help_extra_weights: "Optionale Zusatz-Modelle (kommagetrennt). Leer = aus.",
+          flag_use_extra: "--use_extra (alle models/extra/*.pt nutzen)",
+          help_use_extra: "Optional. Standard ist deaktiviert.",
+          flag_no_plates: "--no_plates (Kennzeichen deaktivieren)",
+          flag_no_faces: "--no_faces (Gesichter deaktivieren)",
+          flag_debug_pixel: "--debug_pixel (gruene Erkennungsboxen)",
+          flag_debug_no_pixel: "--debug_no_pixel (rote No-Pixel-Zonen)",
+          flag_no_track: "--no_track (Tracking aus)",
+          flag_no_audio: "--no_audio (Audio entfernen)",
+          flag_force_sw: "--force_sw (Software-Encoding)",
+          section_advanced: "Erweitert",
+          label_device: "Device",
+          help_device: "Ultralytics Device, z.B. mps oder cpu.",
+          label_conf: "Confidence",
+          ph_conf: "z.B. 0.25",
+          help_conf: "Empfohlen 0.1-0.6. Leer = Preset-Default.",
+          label_imgsz: "imgsz",
+          ph_imgsz: "z.B. 1280",
+          help_imgsz: "YOLO Inferenzgroesse. Hoeher = genauer, langsamer.",
+          label_work_w: "work_w",
+          ph_work_w: "z.B. 1920 oder 0",
+          help_work_w: "Detektionsbreite. 0 = Originalbreite.",
+          label_pad: "pad",
+          ph_pad: "z.B. 20",
+          help_pad: "Sicherheitsrand um erkannte Boxen in Pixeln.",
+          label_blur_ksize: "blur_ksize",
+          help_blur_ksize: "Nur bei blur. Gerade Werte werden intern auf ungerade gesetzt.",
+          label_blocks_plates: "blocks_plates",
+          ph_blocks_plates: "z.B. 16",
+          help_blocks_plates: "Nur bei pixelate. Groesser = grober.",
+          label_blocks_faces: "blocks_faces",
+          ph_blocks_faces: "z.B. 24",
+          help_blocks_faces: "Nur bei pixelate. Groesser = grober.",
+          label_blocks_deprecated: "blocks (deprecated)",
+          ph_blocks_deprecated: "optional",
+          help_blocks_deprecated: "Altes Feld. Besser blocks_plates und blocks_faces nutzen.",
+          label_tiling: "tiling",
+          help_tiling: "1 = aus, 2 = 2x2. Mehr hilft bei kleinen Objekten, kostet Zeit.",
+          label_test_minutes: "test_minutes",
+          help_test_minutes: "Optional. Nur die ersten N Minuten verarbeiten (0 = ganzes Video).",
+          label_log_every: "log_every",
+          help_log_every: "Statusausgabe alle N Frames.",
+          label_snapshot_every: "snapshot_every",
+          help_snapshot_every: "Snapshot alle N Minuten (0 = aus).",
+          label_snapshot_size: "snapshot_size",
+          help_snapshot_size: "Format WIDTHxHEIGHT, z.B. 1920x1080.",
+          label_snapshot_dir: "snapshot_dir",
+          ph_snapshot_dir: "optional",
+          help_snapshot_dir: "Optionales Zielverzeichnis fuer Snapshots.",
+          label_save_preset: "save_preset",
+          opt_save_preset_off: "off (default)",
+          help_save_preset: "Speichert Parameter als Preset im Output-Ordner.",
+          label_load_preset: "load_preset",
+          ph_load_preset: "Dateipfad oder Name",
+          help_load_preset: "Preset JSON laden (Datei oder Basisname).",
+          section_zones: "No-Pixel-Zonen (x1,y1,x2,y2)",
+          zones_help: "Bild wird nur lokal im Browser verarbeitet, nichts wird hochgeladen.",
+          label_zone_image: "Bild laden",
+          help_zone_image: "Nutze ein Standbild mit derselben Aufloesung wie dein Video. Datei waehlen oder per Drag-and-Drop auf das Canvas ziehen.",
+          label_zone_slot: "Aktive Zone",
+          btn_clear_active: "Zone loeschen",
+          btn_clear_all: "Alle loeschen",
+          canvas_hint: "Bild laden (oder auf das Feld ziehen) und Rechteck ziehen, um eine Zone zu setzen.",
+          meta_cursor: "Cursor (Originalpixel)",
+          meta_selection: "Aktuelle Auswahl",
+          ph_zone: "x1,y1,x2,y2",
+          section_output: "Finaler Befehl",
+          output_help: "Der komplette Command ist in einem Feld kopierbar.",
+          btn_copy: "Befehl kopieren",
+          btn_reset: "Zuruecksetzen",
+          note_quote: "Pfade mit Leerzeichen werden fuer bash/zsh korrekt gequotet.",
+          status_ready: "Befehl ist bereit.",
+          status_need_input: "Bitte mindestens --input setzen.",
+          status_zone_warn: "Mindestens eine Zone ist ungueltig. Format: x1,y1,x2,y2 mit x2>x1 und y2>y1.",
+          status_input_drop_ok: "Input-Pfad aus Drag-and-Drop uebernommen.",
+          status_input_drop_name_only: "Browser hat aus Sicherheitsgruenden nur den Dateinamen geliefert. Vollen Pfad ggf. manuell eintragen.",
+          status_input_drop_fail: "Kein verwertbarer Pfad aus Drag-and-Drop gefunden.",
+          status_copied: "Befehl wurde in die Zwischenablage kopiert.",
+          status_copy_fail: "Kopieren hat nicht funktioniert. Bitte Feld manuell kopieren.",
+          cursor_empty: "-",
+          selection_empty: "-",
+          selection_format: "x1={x1}, y1={y1}, x2={x2}, y2={y2}",
+          zone_badge: "Zone"
+        },
+        en: {
+          title: "DSGVO-Pixeler Command Builder",
+          subtitle: "Local configurator for the final CLI command. Everything runs in your browser, no server needed.",
+          section_basic: "Configuration",
+          section_basic_help: "Core settings grouped by practical workflow sections.",
+          group_io: "Input and output",
+          group_io_help: "Source and target video paths.",
+          group_quality: "Video quality",
+          group_quality_help: "Preset, codec and snapshot behavior.",
+          group_pixel: "Anonymization",
+          group_pixel_help: "Anonymization mode and detected target types.",
+          group_test_debug: "Test and debug",
+          group_test_debug_help: "Quick test runs and technical debug overlays.",
+          group_tuning: "Fine tuning",
+          group_tuning_help: "Detection parameters, performance and technical details.",
+          group_models: "Models and presets",
+          group_models_help: "Model weights, extra models and saved presets.",
+          label_input: "Input video",
+          ph_input: "e.g. /videos/input.mp4",
+          help_input: "Required. Path to source video (MP4). Drag-and-drop onto this field tries to import the path.",
+          label_output: "Output video",
+          ph_output: "e.g. /videos/output.mp4",
+          help_output: "Optional. If empty, the script auto-generates an output name.",
+          label_preset: "Preset",
+          opt_preset_balanced: "balanced (default)",
+          opt_preset_fast: "fast",
+          opt_preset_quality: "quality",
+          help_preset: "Quick speed/quality selection. Default is balanced.",
+          label_anonymize: "Anonymization",
+          opt_anonymize_blur: "blur (default)",
+          opt_anonymize_pixelate: "pixelate",
+          help_anonymize: "blur is default. pixelate uses block sizes.",
+          label_codec: "Codec",
+          help_codec: "hevc is efficient. h264 is more compatible.",
+          label_bitrate: "Bitrate",
+          ph_bitrate: "e.g. auto or 50M",
+          help_bitrate: "Empty = preset value. You can use values like 50M.",
+          ph_test_minutes: "e.g. 1",
+          label_weights: "Plate weights",
+          ph_weights: "e.g. models/plates/a.pt,models/plates/b.pt",
+          help_weights: "Comma-separated list for plate models.",
+          label_faces_weights: "Face weights",
+          ph_faces_weights: "e.g. models/faces/face1.pt,models/faces/face2.pt",
+          help_faces_weights: "Comma-separated list for face models.",
+          label_extra_weights: "Extra weights",
+          ph_extra_weights: "e.g. models/extra/obj.pt",
+          help_extra_weights: "Optional extra models (comma-separated). Empty = disabled.",
+          flag_use_extra: "--use_extra (use all models/extra/*.pt)",
+          help_use_extra: "Optional. Disabled by default.",
+          flag_no_plates: "--no_plates (disable plate detection)",
+          flag_no_faces: "--no_faces (disable face detection)",
+          flag_debug_pixel: "--debug_pixel (green detection boxes)",
+          flag_debug_no_pixel: "--debug_no_pixel (red no-pixel zones)",
+          flag_no_track: "--no_track (disable tracking)",
+          flag_no_audio: "--no_audio (remove audio)",
+          flag_force_sw: "--force_sw (force software encoding)",
+          section_advanced: "Advanced",
+          label_device: "Device",
+          help_device: "Ultralytics device, e.g. mps or cpu.",
+          label_conf: "Confidence",
+          ph_conf: "e.g. 0.25",
+          help_conf: "Recommended 0.1-0.6. Empty = preset default.",
+          label_imgsz: "imgsz",
+          ph_imgsz: "e.g. 1280",
+          help_imgsz: "YOLO inference size. Higher = better detection, slower.",
+          label_work_w: "work_w",
+          ph_work_w: "e.g. 1920 or 0",
+          help_work_w: "Detection width. 0 = original width.",
+          label_pad: "pad",
+          ph_pad: "e.g. 20",
+          help_pad: "Safety padding around detected boxes in pixels.",
+          label_blur_ksize: "blur_ksize",
+          help_blur_ksize: "Only for blur. Even values are rounded up to odd values.",
+          label_blocks_plates: "blocks_plates",
+          ph_blocks_plates: "e.g. 16",
+          help_blocks_plates: "Only for pixelate. Larger = coarser.",
+          label_blocks_faces: "blocks_faces",
+          ph_blocks_faces: "e.g. 24",
+          help_blocks_faces: "Only for pixelate. Larger = coarser.",
+          label_blocks_deprecated: "blocks (deprecated)",
+          ph_blocks_deprecated: "optional",
+          help_blocks_deprecated: "Legacy field. Prefer blocks_plates and blocks_faces.",
+          label_tiling: "tiling",
+          help_tiling: "1 = off, 2 = 2x2. Higher helps with tiny objects but costs time.",
+          label_test_minutes: "test_minutes",
+          help_test_minutes: "Optional. Process only the first N minutes (0 = full video).",
+          label_log_every: "log_every",
+          help_log_every: "Print progress every N frames.",
+          label_snapshot_every: "snapshot_every",
+          help_snapshot_every: "Save a snapshot every N minutes (0 = off).",
+          label_snapshot_size: "snapshot_size",
+          help_snapshot_size: "Format WIDTHxHEIGHT, e.g. 1920x1080.",
+          label_snapshot_dir: "snapshot_dir",
+          ph_snapshot_dir: "optional",
+          help_snapshot_dir: "Optional target folder for snapshots.",
+          label_save_preset: "save_preset",
+          opt_save_preset_off: "off (default)",
+          help_save_preset: "Save used parameters as preset in output folder.",
+          label_load_preset: "load_preset",
+          ph_load_preset: "path or preset name",
+          help_load_preset: "Load preset JSON (full path or base name).",
+          section_zones: "No-pixel zones (x1,y1,x2,y2)",
+          zones_help: "The image is processed locally in your browser. Nothing is uploaded.",
+          label_zone_image: "Load image",
+          help_zone_image: "Use a still image with the same resolution as your video. Select a file or drag and drop it onto the canvas area.",
+          label_zone_slot: "Active zone",
+          btn_clear_active: "Clear zone",
+          btn_clear_all: "Clear all",
+          canvas_hint: "Load an image (or drop it here) and drag a rectangle to set a zone.",
+          meta_cursor: "Cursor (original pixels)",
+          meta_selection: "Current selection",
+          ph_zone: "x1,y1,x2,y2",
+          section_output: "Final command",
+          output_help: "The complete command is copyable from one text field.",
+          btn_copy: "Copy command",
+          btn_reset: "Reset",
+          note_quote: "Paths with spaces are correctly quoted for bash/zsh.",
+          status_ready: "Command is ready.",
+          status_need_input: "Please set at least --input.",
+          status_zone_warn: "At least one zone is invalid. Format: x1,y1,x2,y2 with x2>x1 and y2>y1.",
+          status_input_drop_ok: "Imported input path from drag-and-drop.",
+          status_input_drop_name_only: "Browser security only provided the filename. Enter full path manually if needed.",
+          status_input_drop_fail: "No usable path found from drag-and-drop.",
+          status_copied: "Command copied to clipboard.",
+          status_copy_fail: "Copy failed. Please copy manually from the text field.",
+          cursor_empty: "-",
+          selection_empty: "-",
+          selection_format: "x1={x1}, y1={y1}, x2={x2}, y2={y2}",
+          zone_badge: "Zone"
+        }
+      };
+
+      const defaults = {
+        preset: "balanced",
+        anonymize: "blur",
+        codec: "hevc",
+        device: "mps",
+        blurKsize: "80",
+        tiling: "2",
+        testMinutes: "",
+        logEvery: "200",
+        snapshotEvery: "1",
+        snapshotSize: "1920x1080",
+        savePreset: "off"
+      };
+
+      const form = document.getElementById("builderForm");
+      const inputPathField = document.getElementById("inputPath");
+      const commandOutput = document.getElementById("commandOutput");
+      const commandStatus = document.getElementById("commandStatus");
+      const copyBtn = document.getElementById("copyBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const zoneInputs = [
+        document.getElementById("zone1"),
+        document.getElementById("zone2"),
+        document.getElementById("zone3"),
+        document.getElementById("zone4")
+      ];
+      const zoneSlot = document.getElementById("zoneSlot");
+      const zoneImageInput = document.getElementById("zoneImage");
+      const clearActiveZoneBtn = document.getElementById("clearActiveZoneBtn");
+      const clearAllZonesBtn = document.getElementById("clearAllZonesBtn");
+      const canvas = document.getElementById("zoneCanvas");
+      const canvasWrap = canvas.parentElement;
+      const ctx = canvas.getContext("2d");
+      const canvasHint = document.getElementById("canvasHint");
+      const cursorInfo = document.getElementById("cursorInfo");
+      const selectionInfo = document.getElementById("selectionInfo");
+
+      let lang = "de";
+      let messageState = null;
+      let messageTimer = null;
+
+      let loadedImage = null;
+      let imageUrl = "";
+      let drawStart = null;
+      let drawNow = null;
+      let hoverPoint = null;
+      let imageScale = 1;
+      let imageOffsetX = 0;
+      let imageOffsetY = 0;
+      let imageRectW = 0;
+      let imageRectH = 0;
+      let isDrawing = false;
+      let dragDepth = 0;
+      let inputDragDepth = 0;
+
+      const langButtons = Array.from(document.querySelectorAll("[data-lang]"));
+      langButtons.forEach((btn) => {
+        btn.addEventListener("click", function () {
+          lang = btn.getAttribute("data-lang") || "de";
+          langButtons.forEach((item) => item.classList.toggle("active", item === btn));
+          applyI18n();
+          renderCanvas();
+          updateCommand();
+        });
+      });
+
+      function t(key) {
+        return (i18n[lang] && i18n[lang][key]) || key;
+      }
+
+      function applyI18n() {
+        document.documentElement.lang = lang;
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          el.textContent = t(el.getAttribute("data-i18n"));
+        });
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+          el.placeholder = t(el.getAttribute("data-i18n-placeholder"));
+        });
+        applyHoverHelp();
+      }
+
+      function applyHoverHelp() {
+        document.querySelectorAll(".field").forEach((field) => {
+          const helpEl = field.querySelector(".help");
+          if (!helpEl) {
+            return;
+          }
+          const text = helpEl.textContent.replace(/\s+/g, " ").trim();
+          if (!text) {
+            return;
+          }
+          const label = field.querySelector("label");
+          if (label) {
+            label.title = text;
+          }
+          field.querySelectorAll("input, select, textarea, button").forEach((ctrl) => {
+            ctrl.title = text;
+          });
+        });
+
+        document.querySelectorAll(".check-item").forEach((item) => {
+          const text = item.textContent.replace(/\s+/g, " ").trim();
+          if (!text) {
+            return;
+          }
+          item.title = text;
+          const checkbox = item.querySelector("input");
+          const labelText = item.querySelector("span");
+          if (checkbox) {
+            checkbox.title = text;
+          }
+          if (labelText) {
+            labelText.title = text;
+          }
+        });
+
+        document.querySelectorAll(".zone-row").forEach((row) => {
+          const tag = row.querySelector(".zone-tag");
+          const input = row.querySelector("input");
+          if (!tag || !input) {
+            return;
+          }
+          const tagText = tag.textContent.replace(/\s+/g, " ").trim();
+          const inputHint = (input.placeholder || "").trim();
+          const text = (tagText + " " + inputHint).trim();
+          if (!text) {
+            return;
+          }
+          tag.title = text;
+          input.title = text;
+        });
+      }
+
+      function shellEscape(value) {
+        const str = String(value);
+        if (str.length === 0) {
+          return "''";
+        }
+        if (/^[A-Za-z0-9_./:@%+=,-]+$/.test(str)) {
+          return str;
+        }
+        return "'" + str.replace(/'/g, "'\"'\"'") + "'";
+      }
+
+      function setInputDropActive(active) {
+        inputPathField.classList.toggle("dragover", !!active);
+      }
+
+      function parseFileUriToPath(raw) {
+        if (!raw) {
+          return "";
+        }
+        let source = String(raw).trim();
+        if (!source) {
+          return "";
+        }
+        if (source.indexOf("file://") !== 0) {
+          return "";
+        }
+        try {
+          const url = new URL(source);
+          if (url.protocol !== "file:") {
+            return "";
+          }
+          let path = decodeURIComponent(url.pathname || "");
+          if (/^\/[A-Za-z]:/.test(path)) {
+            path = path.slice(1);
+          }
+          return path || "";
+        } catch (err) {
+          return "";
+        }
+      }
+
+      function extractInputPathFromDrop(event) {
+        const dt = event.dataTransfer;
+        if (!dt) {
+          return { path: "", filenameOnly: false };
+        }
+
+        const uriList = dt.getData("text/uri-list");
+        if (uriList) {
+          const uriLines = uriList.split(/\r?\n/).map((x) => x.trim()).filter((x) => !!x && x[0] !== "#");
+          for (const line of uriLines) {
+            const uriPath = parseFileUriToPath(line);
+            if (uriPath) {
+              return { path: uriPath, filenameOnly: false };
+            }
+          }
+        }
+
+        const textPlain = dt.getData("text/plain").trim();
+        const plainUriPath = parseFileUriToPath(textPlain);
+        if (plainUriPath) {
+          return { path: plainUriPath, filenameOnly: false };
+        }
+        if (/^(\/|~\/|[A-Za-z]:[\\/])/.test(textPlain)) {
+          return { path: textPlain, filenameOnly: false };
+        }
+
+        if (dt.files && dt.files.length > 0) {
+          const file = dt.files[0];
+          if (file && typeof file.path === "string" && file.path.trim()) {
+            return { path: file.path.trim(), filenameOnly: false };
+          }
+          if (file && typeof file.webkitRelativePath === "string" && file.webkitRelativePath.trim()) {
+            return { path: file.webkitRelativePath.trim(), filenameOnly: true };
+          }
+          if (file && typeof file.name === "string" && file.name.trim()) {
+            return { path: file.name.trim(), filenameOnly: true };
+          }
+        }
+
+        return { path: "", filenameOnly: false };
+      }
+
+      function val(id) {
+        const el = document.getElementById(id);
+        return el ? el.value.trim() : "";
+      }
+
+      function checked(id) {
+        const el = document.getElementById(id);
+        return !!(el && el.checked);
+      }
+
+      function addArg(parts, flag, value) {
+        if (value === undefined) {
+          parts.push(flag);
+          return;
+        }
+        parts.push(flag + " " + shellEscape(value));
+      }
+
+      function parseZone(text) {
+        if (!text) {
+          return null;
+        }
+        const cleaned = text.replace(/\s+/g, "");
+        const items = cleaned.split(",");
+        if (items.length !== 4) {
+          return null;
+        }
+        const nums = items.map((x) => Number(x));
+        if (nums.some((n) => !Number.isFinite(n) || n < 0 || !Number.isInteger(n))) {
+          return null;
+        }
+        const x1 = Math.min(nums[0], nums[2]);
+        const y1 = Math.min(nums[1], nums[3]);
+        const x2 = Math.max(nums[0], nums[2]);
+        const y2 = Math.max(nums[1], nums[3]);
+        if (x2 <= x1 || y2 <= y1) {
+          return null;
+        }
+        return { x1, y1, x2, y2, text: x1 + "," + y1 + "," + x2 + "," + y2 };
+      }
+
+      function setStatus(kind, key, stickyMs) {
+        messageState = { kind, key };
+        if (messageTimer) {
+          clearTimeout(messageTimer);
+          messageTimer = null;
+        }
+        if (stickyMs) {
+          messageTimer = setTimeout(function () {
+            messageState = null;
+            updateCommand();
+          }, stickyMs);
+        }
+      }
+
+      function renderStatus(baseKind, baseKey) {
+        const state = messageState || { kind: baseKind, key: baseKey };
+        commandStatus.className = "status " + state.kind;
+        commandStatus.textContent = t(state.key);
+      }
+
+      function appendIfChanged(parts, flag, value, defaultValue) {
+        if (value !== "" && String(value) !== String(defaultValue)) {
+          addArg(parts, flag, value);
+        }
+      }
+
+      function updateCommand() {
+        const parts = [];
+        const inputPath = val("inputPath");
+        const outputPath = val("outputPath");
+
+        addArg(parts, "--input", inputPath || "<input.mp4>");
+        if (outputPath) {
+          addArg(parts, "--output", outputPath);
+        }
+
+        const weights = val("weights");
+        const facesWeights = val("facesWeights");
+        const extraWeights = val("extraWeights");
+        if (weights) {
+          addArg(parts, "--weights", weights);
+        }
+        if (facesWeights) {
+          addArg(parts, "--faces_weights", facesWeights);
+        }
+        if (extraWeights) {
+          addArg(parts, "--extra_weights", extraWeights);
+        }
+        if (checked("useExtra")) {
+          addArg(parts, "--use_extra");
+        }
+
+        appendIfChanged(parts, "--preset", val("preset"), defaults.preset);
+        appendIfChanged(parts, "--anonymize", val("anonymize"), defaults.anonymize);
+        appendIfChanged(parts, "--codec", val("codec"), defaults.codec);
+        appendIfChanged(parts, "--device", val("device"), defaults.device);
+
+        const bitrate = val("bitrate");
+        if (bitrate) {
+          addArg(parts, "--bitrate", bitrate);
+        }
+
+        const conf = val("conf");
+        const imgsz = val("imgsz");
+        const workW = val("workW");
+        const pad = val("pad");
+        if (conf) {
+          addArg(parts, "--conf", conf);
+        }
+        if (imgsz) {
+          addArg(parts, "--imgsz", imgsz);
+        }
+        if (workW) {
+          addArg(parts, "--work_w", workW);
+        }
+        if (pad) {
+          addArg(parts, "--pad", pad);
+        }
+
+        const anonymize = val("anonymize");
+        const blurKsize = val("blurKsize");
+        const blocksPlates = val("blocksPlates");
+        const blocksFaces = val("blocksFaces");
+        const blocksDeprecated = val("blocksDeprecated");
+        if (anonymize === "blur") {
+          appendIfChanged(parts, "--blur_ksize", blurKsize, defaults.blurKsize);
+        } else if (anonymize === "pixelate") {
+          if (blocksPlates) {
+            addArg(parts, "--blocks_plates", blocksPlates);
+          }
+          if (blocksFaces) {
+            addArg(parts, "--blocks_faces", blocksFaces);
+          }
+          if (blocksDeprecated) {
+            addArg(parts, "--blocks", blocksDeprecated);
+          }
+        }
+
+        appendIfChanged(parts, "--tiling", val("tiling"), defaults.tiling);
+        if (val("testMinutes") !== "" && val("testMinutes") !== "0") {
+          addArg(parts, "--test_minutes", val("testMinutes"));
+        }
+        appendIfChanged(parts, "--log_every", val("logEvery"), defaults.logEvery);
+        appendIfChanged(parts, "--snapshot_every", val("snapshotEvery"), defaults.snapshotEvery);
+
+        const snapshotDir = val("snapshotDir");
+        if (snapshotDir) {
+          addArg(parts, "--snapshot_dir", snapshotDir);
+        }
+
+        const snapshotSize = val("snapshotSize");
+        const snapshotEvery = val("snapshotEvery");
+        if (snapshotSize && (snapshotSize !== defaults.snapshotSize || snapshotEvery !== defaults.snapshotEvery)) {
+          addArg(parts, "--snapshot_size", snapshotSize);
+        }
+
+        appendIfChanged(parts, "--save_preset", val("savePreset"), defaults.savePreset);
+        const loadPreset = val("loadPreset");
+        if (loadPreset) {
+          addArg(parts, "--load_preset", loadPreset);
+        }
+
+        if (checked("noPlates")) addArg(parts, "--no_plates");
+        if (checked("noFaces")) addArg(parts, "--no_faces");
+        if (checked("debugPixel")) addArg(parts, "--debug_pixel");
+        if (checked("debugNoPixel")) addArg(parts, "--debug_no_pixel");
+        if (checked("noTrack")) addArg(parts, "--no_track");
+        if (checked("noAudio")) addArg(parts, "--no_audio");
+        if (checked("forceSw")) addArg(parts, "--force_sw");
+
+        let hasBadZone = false;
+        zoneInputs.forEach((zoneInput, idx) => {
+          const raw = zoneInput.value.trim();
+          if (!raw) {
+            zoneInput.classList.remove("invalid");
+            return;
+          }
+          const parsed = parseZone(raw);
+          if (!parsed) {
+            hasBadZone = true;
+            zoneInput.classList.add("invalid");
+            return;
+          }
+          zoneInput.classList.remove("invalid");
+          zoneInput.value = parsed.text;
+          addArg(parts, "--no_pixel_zone_px" + String(idx + 1), parsed.text);
+        });
+
+        commandOutput.value = ["python dsgvo-pixeler.py"]
+          .concat(parts.map((part) => "  " + part))
+          .join(" \\\n");
+
+        if (!inputPath) {
+          renderStatus("err", "status_need_input");
+        } else if (hasBadZone) {
+          renderStatus("warn", "status_zone_warn");
+        } else {
+          renderStatus("ok", "status_ready");
+        }
+
+        renderCanvas();
+      }
+
+      function clearImage(revokeObjectUrl) {
+        loadedImage = null;
+        drawStart = null;
+        drawNow = null;
+        hoverPoint = null;
+        isDrawing = false;
+        if (revokeObjectUrl && imageUrl) {
+          URL.revokeObjectURL(imageUrl);
+          imageUrl = "";
+        }
+        canvasHint.style.display = "";
+        cursorInfo.textContent = t("cursor_empty");
+        selectionInfo.textContent = t("selection_empty");
+        fitCanvas();
+        drawPlaceholder();
+      }
+
+      function setZoneDragActive(active) {
+        canvasWrap.classList.toggle("dragover", !!active);
+      }
+
+      function loadZoneImageFile(file) {
+        if (!file || !file.type || file.type.indexOf("image/") !== 0) {
+          return false;
+        }
+        if (imageUrl) {
+          URL.revokeObjectURL(imageUrl);
+        }
+        imageUrl = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = function () {
+          loadedImage = img;
+          fitCanvas();
+          renderCanvas();
+          cursorInfo.textContent = t("cursor_empty");
+          selectionInfo.textContent = t("selection_empty");
+        };
+        img.onerror = function () {
+          clearImage(true);
+        };
+        img.src = imageUrl;
+        return true;
+      }
+
+      function drawPlaceholder() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(12, 26, 44, 0.9)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      function fitCanvas() {
+        const wrap = canvas.parentElement;
+        const maxW = Math.max(320, wrap.clientWidth - 2);
+        const maxH = 520;
+        if (!loadedImage) {
+          canvas.width = maxW;
+          canvas.height = 260;
+          imageRectW = 0;
+          imageRectH = 0;
+          imageOffsetX = 0;
+          imageOffsetY = 0;
+          return;
+        }
+        imageScale = Math.min(maxW / loadedImage.naturalWidth, maxH / loadedImage.naturalHeight);
+        if (!Number.isFinite(imageScale) || imageScale <= 0) {
+          imageScale = 1;
+        }
+        imageRectW = Math.max(1, Math.round(loadedImage.naturalWidth * imageScale));
+        imageRectH = Math.max(1, Math.round(loadedImage.naturalHeight * imageScale));
+        canvas.width = maxW;
+        canvas.height = Math.max(260, imageRectH);
+        imageOffsetX = Math.round((canvas.width - imageRectW) / 2);
+        imageOffsetY = Math.round((canvas.height - imageRectH) / 2);
+      }
+
+      function toCanvasPoint(point) {
+        return {
+          x: imageOffsetX + (point.x / loadedImage.naturalWidth) * imageRectW,
+          y: imageOffsetY + (point.y / loadedImage.naturalHeight) * imageRectH
+        };
+      }
+
+      function toImagePoint(event) {
+        if (!loadedImage) {
+          return null;
+        }
+        const rect = canvas.getBoundingClientRect();
+        const rx = (event.clientX - rect.left - imageOffsetX) / imageRectW;
+        const ry = (event.clientY - rect.top - imageOffsetY) / imageRectH;
+        const clampedX = Math.min(1, Math.max(0, rx));
+        const clampedY = Math.min(1, Math.max(0, ry));
+        const x = Math.round(clampedX * loadedImage.naturalWidth);
+        const y = Math.round(clampedY * loadedImage.naturalHeight);
+        return {
+          x: Math.min(loadedImage.naturalWidth - 1, Math.max(0, x)),
+          y: Math.min(loadedImage.naturalHeight - 1, Math.max(0, y))
+        };
+      }
+
+      function rectFromPoints(a, b) {
+        const x1 = Math.min(a.x, b.x);
+        const y1 = Math.min(a.y, b.y);
+        const x2 = Math.max(a.x, b.x);
+        const y2 = Math.max(a.y, b.y);
+        return { x1, y1, x2, y2 };
+      }
+
+      function renderSelectionText(rect) {
+        if (!rect) {
+          selectionInfo.textContent = t("selection_empty");
+          return;
+        }
+        selectionInfo.textContent = t("selection_format")
+          .replace("{x1}", String(rect.x1))
+          .replace("{y1}", String(rect.y1))
+          .replace("{x2}", String(rect.x2))
+          .replace("{y2}", String(rect.y2));
+      }
+
+      function renderCanvas() {
+        if (!loadedImage) {
+          drawPlaceholder();
+          canvasHint.style.display = "";
+          return;
+        }
+        canvasHint.style.display = "none";
+        fitCanvas();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(5, 12, 23, 0.98)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(loadedImage, imageOffsetX, imageOffsetY, imageRectW, imageRectH);
+
+        const zones = zoneInputs
+          .map((input, idx) => {
+            const parsed = parseZone(input.value.trim());
+            if (!parsed) {
+              return null;
+            }
+            return { zone: parsed, idx: idx };
+          })
+          .filter((entry) => !!entry);
+
+        zones.forEach((entry) => {
+          const zone = entry.zone;
+          const a = toCanvasPoint({ x: zone.x1, y: zone.y1 });
+          const b = toCanvasPoint({ x: zone.x2, y: zone.y2 });
+          const w = b.x - a.x;
+          const h = b.y - a.y;
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = "rgba(255, 95, 95, 0.95)";
+          ctx.fillStyle = "rgba(255, 45, 45, 0.12)";
+          ctx.fillRect(a.x, a.y, w, h);
+          ctx.strokeRect(a.x, a.y, w, h);
+          ctx.fillStyle = "rgba(9, 13, 19, 0.84)";
+          ctx.fillRect(a.x, Math.max(imageOffsetY, a.y - 22), 68, 18);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "12px 'Avenir Next', 'Trebuchet MS', sans-serif";
+          ctx.fillText(t("zone_badge") + " " + String(entry.idx + 1), a.x + 6, Math.max(imageOffsetY + 12, a.y - 8));
+        });
+
+        if (drawStart && drawNow) {
+          const r = rectFromPoints(drawStart, drawNow);
+          const a = toCanvasPoint({ x: r.x1, y: r.y1 });
+          const b = toCanvasPoint({ x: r.x2, y: r.y2 });
+          ctx.save();
+          ctx.setLineDash([8, 5]);
+          ctx.strokeStyle = "rgba(255, 215, 102, 0.98)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
+          ctx.restore();
+          renderSelectionText(r);
+        } else {
+          renderSelectionText(null);
+        }
+      }
+
+      function setActiveZone(text) {
+        const idx = Number(zoneSlot.value) - 1;
+        if (idx < 0 || idx >= zoneInputs.length) {
+          return;
+        }
+        zoneInputs[idx].value = text;
+        updateCommand();
+      }
+
+      function onPointerDown(event) {
+        if (!loadedImage) {
+          return;
+        }
+        const p = toImagePoint(event);
+        if (!p) {
+          return;
+        }
+        isDrawing = true;
+        drawStart = p;
+        drawNow = p;
+        hoverPoint = p;
+        cursorInfo.textContent = "x=" + p.x + ", y=" + p.y;
+        canvas.setPointerCapture(event.pointerId);
+        renderCanvas();
+      }
+
+      function onPointerMove(event) {
+        if (!loadedImage) {
+          return;
+        }
+        const p = toImagePoint(event);
+        if (!p) {
+          return;
+        }
+        hoverPoint = p;
+        cursorInfo.textContent = "x=" + p.x + ", y=" + p.y;
+        if (isDrawing) {
+          drawNow = p;
+          renderCanvas();
+        }
+      }
+
+      function onPointerUp(event) {
+        if (!loadedImage || !isDrawing) {
+          return;
+        }
+        const p = toImagePoint(event);
+        if (!p || !drawStart) {
+          isDrawing = false;
+          drawStart = null;
+          drawNow = null;
+          renderCanvas();
+          return;
+        }
+        drawNow = p;
+        const r = rectFromPoints(drawStart, drawNow);
+        isDrawing = false;
+        drawStart = null;
+        drawNow = null;
+        if (r.x2 > r.x1 && r.y2 > r.y1) {
+          setActiveZone(r.x1 + "," + r.y1 + "," + r.x2 + "," + r.y2);
+        } else {
+          renderCanvas();
+        }
+      }
+
+      function onPointerLeave() {
+        hoverPoint = null;
+        cursorInfo.textContent = t("cursor_empty");
+      }
+
+      zoneImageInput.addEventListener("change", function () {
+        const file = zoneImageInput.files && zoneImageInput.files[0];
+        if (!file) {
+          clearImage(true);
+          return;
+        }
+        loadZoneImageFile(file);
+      });
+
+      inputPathField.addEventListener("dragenter", function (event) {
+        event.preventDefault();
+        inputDragDepth += 1;
+        setInputDropActive(true);
+      });
+
+      inputPathField.addEventListener("dragover", function (event) {
+        event.preventDefault();
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = "copy";
+        }
+        setInputDropActive(true);
+      });
+
+      inputPathField.addEventListener("dragleave", function (event) {
+        event.preventDefault();
+        inputDragDepth = Math.max(0, inputDragDepth - 1);
+        if (inputDragDepth === 0) {
+          setInputDropActive(false);
+        }
+      });
+
+      inputPathField.addEventListener("drop", function (event) {
+        event.preventDefault();
+        inputDragDepth = 0;
+        setInputDropActive(false);
+
+        const result = extractInputPathFromDrop(event);
+        if (!result.path) {
+          setStatus("warn", "status_input_drop_fail", 2200);
+          updateCommand();
+          return;
+        }
+
+        inputPathField.value = result.path;
+        if (result.filenameOnly) {
+          setStatus("warn", "status_input_drop_name_only", 3200);
+        } else {
+          setStatus("ok", "status_input_drop_ok", 1800);
+        }
+        updateCommand();
+      });
+
+      canvasWrap.addEventListener("dragenter", function (event) {
+        event.preventDefault();
+        dragDepth += 1;
+        setZoneDragActive(true);
+      });
+
+      canvasWrap.addEventListener("dragover", function (event) {
+        event.preventDefault();
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = "copy";
+        }
+        setZoneDragActive(true);
+      });
+
+      canvasWrap.addEventListener("dragleave", function (event) {
+        event.preventDefault();
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (dragDepth === 0) {
+          setZoneDragActive(false);
+        }
+      });
+
+      canvasWrap.addEventListener("drop", function (event) {
+        event.preventDefault();
+        dragDepth = 0;
+        setZoneDragActive(false);
+        const files = event.dataTransfer && event.dataTransfer.files;
+        if (!files || files.length === 0) {
+          return;
+        }
+        loadZoneImageFile(files[0]);
+      });
+
+      clearActiveZoneBtn.addEventListener("click", function () {
+        const idx = Number(zoneSlot.value) - 1;
+        if (idx >= 0 && idx < zoneInputs.length) {
+          zoneInputs[idx].value = "";
+        }
+        updateCommand();
+      });
+
+      clearAllZonesBtn.addEventListener("click", function () {
+        zoneInputs.forEach((input) => {
+          input.value = "";
+          input.classList.remove("invalid");
+        });
+        updateCommand();
+      });
+
+      canvas.addEventListener("pointerdown", onPointerDown);
+      canvas.addEventListener("pointermove", onPointerMove);
+      canvas.addEventListener("pointerup", onPointerUp);
+      canvas.addEventListener("pointercancel", onPointerUp);
+      canvas.addEventListener("pointerleave", onPointerLeave);
+
+      function copyCommand() {
+        const text = commandOutput.value;
+        if (!text) {
+          return;
+        }
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text)
+            .then(function () {
+              setStatus("ok", "status_copied", 1800);
+              updateCommand();
+            })
+            .catch(function () {
+              fallbackCopy(text);
+            });
+          return;
+        }
+        fallbackCopy(text);
+      }
+
+      function fallbackCopy(text) {
+        commandOutput.focus();
+        commandOutput.select();
+        try {
+          const ok = document.execCommand("copy");
+          if (ok) {
+            setStatus("ok", "status_copied", 1800);
+          } else {
+            setStatus("warn", "status_copy_fail", 2200);
+          }
+        } catch (err) {
+          setStatus("warn", "status_copy_fail", 2200);
+        }
+        updateCommand();
+      }
+
+      copyBtn.addEventListener("click", copyCommand);
+
+      resetBtn.addEventListener("click", function () {
+        form.reset();
+        zoneInputs.forEach((input) => {
+          input.value = "";
+          input.classList.remove("invalid");
+        });
+        document.getElementById("device").value = defaults.device;
+        document.getElementById("blurKsize").value = defaults.blurKsize;
+        document.getElementById("tiling").value = defaults.tiling;
+        document.getElementById("testMinutes").value = defaults.testMinutes;
+        document.getElementById("logEvery").value = defaults.logEvery;
+        document.getElementById("snapshotEvery").value = defaults.snapshotEvery;
+        document.getElementById("snapshotSize").value = defaults.snapshotSize;
+        document.getElementById("preset").value = defaults.preset;
+        document.getElementById("anonymize").value = defaults.anonymize;
+        document.getElementById("codec").value = defaults.codec;
+        document.getElementById("savePreset").value = defaults.savePreset;
+        zoneSlot.value = "1";
+        zoneImageInput.value = "";
+        dragDepth = 0;
+        setZoneDragActive(false);
+        inputDragDepth = 0;
+        setInputDropActive(false);
+        clearImage(true);
+        setStatus("info", "status_ready", 1000);
+        updateCommand();
+      });
+
+      form.addEventListener("input", updateCommand);
+      form.addEventListener("change", updateCommand);
+      zoneInputs.forEach((input) => {
+        input.addEventListener("input", updateCommand);
+        input.addEventListener("change", updateCommand);
+      });
+
+      window.addEventListener("resize", function () {
+        if (loadedImage) {
+          fitCanvas();
+          renderCanvas();
+        }
+      });
+
+      applyI18n();
+      clearImage(false);
+      updateCommand();
+    })();
+  </script>
+</body>
+</html>

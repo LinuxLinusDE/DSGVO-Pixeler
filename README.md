@@ -278,7 +278,8 @@ Preset names are derived from the input filename (e.g. `source.mp4` -> `source_p
 - `blocks`: deprecated alias for `blocks_plates`. Recommended: 4-64.
 - `pad`: safety padding around each box (pixels). Default: 20. Recommended: 0-100.
 - `no_pixel_zone_px1..4`: up to four pixel zones as `x1,y1,x2,y2` (top-left -> bottom-right).
-- Tip: You can find pixel coordinates here: https://imageonline.io/find-coordinates-of-image/ or https://get-image-coordinates.vercel.app/
+- Tip: Use the built-in command builder to define no-pixel zones locally: `docs/command-builder.html`
+- Hosted version: https://linuxlinusde.github.io/DSGVO-Pixeler/command-builder.html
 - `force_sw`: force software encoding.
 - `test_minutes`: process only the first N minutes (0 = full video). Default: 0. Recommended: 0-60.
 - `preset`: `fast`, `balanced`, `quality` for quick speed/quality choice.

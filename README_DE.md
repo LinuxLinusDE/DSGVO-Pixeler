@@ -286,7 +286,8 @@ Preset-Namen leiten sich vom Input-Dateinamen ab (z. B. `source.mp4` -> `source_
 - `blocks`: deprecatedes Alias fuer `blocks_plates`. Empfohlen: 4-64.
 - `pad`: Sicherheitsrand in Pixeln um jede Box. Default: 20. Empfohlen: 0-100.
 - `no_pixel_zone_px1..4`: Bis zu vier No-Pixel-Zonen in Pixeln als `x1,y1,x2,y2` (oben links -> unten rechts).
-- Tipp: Koordinaten fuer Pixel-Zonen kannst du z. B. hier bestimmen: https://imageonline.io/find-coordinates-of-image/ oder https://get-image-coordinates.vercel.app/
+- Tipp: Nutze den eingebauten Command-Builder, um No-Pixel-Zonen lokal zu bestimmen: `docs/command-builder.html`
+- Gehostete Version: https://linuxlinusde.github.io/DSGVO-Pixeler/command-builder.html
 - `force_sw`: Software-Encoding erzwingen (nuetzlich, wenn VideoToolbox zickt).
 - `test_minutes`: Nur die ersten N Minuten verarbeiten (0 = alles). Default: 0. Empfohlen: 0-60.
 - `preset`: `fast`, `balanced`, `quality` fuer einfache Speed/Qualitaets-Wahl.
