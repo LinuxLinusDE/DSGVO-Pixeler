@@ -883,6 +883,13 @@
           <pre><code>python dsgvo-pixeler.py --input source.mp4</code></pre>
         </div>
         <div class="card code-card">
+          <h3>Mehrere Dateien</h3>
+          <pre><code>python dsgvo-pixeler.py --input /videos/source \\
+  --output /videos/pixelt
+python dsgvo-pixeler.py --input "/videos/source/*.mp4" \\
+  --output /videos/pixelt</code></pre>
+        </div>
+        <div class="card code-card">
           <h3>H264 kompatibel + feste Bitrate</h3>
           <pre><code>python dsgvo-pixeler.py \\
   --input input.mp4 \\

@@ -37,6 +37,13 @@ Wenn dir Fehlermeldungen wie `ModuleNotFoundError: No module named 'cv2'` ersche
 
 Hinweis: `--output` ist optional. Wenn du es weglasst, wird die Datei automatisch im gleichen Ordner wie das Input-Video erzeugt (mit Infos wie Weights, Preset und Timestamp im Namen).
 
+Du kannst auch einen Ordner, ein Glob-Muster oder eine kommagetrennte Liste als Quelle angeben. Dann verarbeitet das Script alle passenden `.mp4`-Dateien. Wenn `--output` gesetzt ist, muss es in diesem Fall ein Zielordner sein:
+```bash
+python dsgvo-pixeler.py --input /videos/source --output /videos/pixelt
+python dsgvo-pixeler.py --input "/videos/source/*.mp4" --output /videos/pixelt
+python dsgvo-pixeler.py --input a.mp4,b.mp4,c.mp4 --output /videos/pixelt
+```
+
 Wenn du ohne Parameter startest, zeigt das Programm eine kurze, leicht verstaendliche Hilfe an.
 
 ## Screenshots
@@ -227,6 +234,13 @@ Beispiele aus der Praxis
 Minimaler Lauf mit Defaults (Weights automatisch aus `models/plates/`/`models/faces/`):
 ```bash
 python dsgvo-pixeler.py --input source.mp4
+```
+
+Mehrere MP4-Dateien verarbeiten (Ordner, Glob oder Liste):
+```bash
+python dsgvo-pixeler.py --input /videos/source --output /videos/pixelt
+python dsgvo-pixeler.py --input "/videos/source/*.mp4" --output /videos/pixelt
+python dsgvo-pixeler.py --input a.mp4,b.mp4,c.mp4 --output /videos/pixelt
 ```
 
 Schneller Testlauf mit zwei No-Pixel-Zonen und visuellem Debug (nur 1 Minute):

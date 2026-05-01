@@ -37,6 +37,13 @@ If you see errors like `ModuleNotFoundError: No module named 'cv2'`, the environ
 
 Note: `--output` is optional. If omitted, the file is created in the same folder as the input with useful info (weights, preset, timestamp) in the filename.
 
+You can also use a folder, a glob pattern, or a comma-separated list as the input. The script then processes all matching `.mp4` files. If `--output` is set in this mode, it must be an output folder:
+```bash
+python dsgvo-pixeler.py --input /videos/source --output /videos/pixelated
+python dsgvo-pixeler.py --input "/videos/source/*.mp4" --output /videos/pixelated
+python dsgvo-pixeler.py --input a.mp4,b.mp4,c.mp4 --output /videos/pixelated
+```
+
 If you start without parameters, the program shows a short, easy help message.
 
 ## Screenshots
@@ -219,6 +226,13 @@ Examples from real-world workflows
 Minimal run with defaults (weights auto-detected from `models/plates/`/`models/faces/`):
 ```bash
 python dsgvo-pixeler.py --input source.mp4
+```
+
+Process multiple MP4 files (folder, glob, or list):
+```bash
+python dsgvo-pixeler.py --input /videos/source --output /videos/pixelated
+python dsgvo-pixeler.py --input "/videos/source/*.mp4" --output /videos/pixelated
+python dsgvo-pixeler.py --input a.mp4,b.mp4,c.mp4 --output /videos/pixelated
 ```
 
 Fast test run with two no-pixel zones and visual debugging (1 minute only):

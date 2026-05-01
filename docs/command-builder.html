@@ -491,18 +491,18 @@
         <div class="form-groups">
           <section class="form-group">
             <h3 data-i18n="group_io">Ein- und Ausgabe</h3>
-            <p class="subtle" data-i18n="group_io_help">Dateipfade fuer Quelle und Zielvideo.</p>
+            <p class="subtle" data-i18n="group_io_help">Dateipfade fuer Quelle und Ziel.</p>
             <div class="field-grid">
               <div class="field full">
-                <label for="inputPath" data-i18n="label_input">Input Video</label>
-                <input id="inputPath" type="text" data-i18n-placeholder="ph_input" placeholder="z.B. /videos/input.mp4" />
-                <div class="help" data-i18n="help_input">Pflichtfeld. Pfad zur Quelldatei (MP4). Drag-and-Drop auf dieses Feld versucht den Pfad zu uebernehmen.</div>
+                <label for="inputPath" data-i18n="label_input">Input Video, Ordner oder Muster</label>
+                <input id="inputPath" type="text" data-i18n-placeholder="ph_input" placeholder="z.B. /videos/input.mp4, /videos/source oder /videos/*.mp4" />
+                <div class="help" data-i18n="help_input">Pflichtfeld. Pfad zur Quelldatei, zu einem Ordner, zu einem Glob-Muster oder zu einer Komma-Liste von MP4-Dateien.</div>
               </div>
 
               <div class="field full">
-                <label for="outputPath" data-i18n="label_output">Output Video</label>
-                <input id="outputPath" type="text" data-i18n-placeholder="ph_output" placeholder="z.B. /videos/output.mp4" />
-                <div class="help" data-i18n="help_output">Optional. Wenn leer, erzeugt das Script selbst einen Dateinamen.</div>
+                <label for="outputPath" data-i18n="label_output">Output Video oder Ordner</label>
+                <input id="outputPath" type="text" data-i18n-placeholder="ph_output" placeholder="z.B. /videos/output.mp4 oder /videos/pixelt" />
+                <div class="help" data-i18n="help_output">Optional. Wenn leer, erzeugt das Script selbst einen Dateinamen. Bei mehreren Inputs ist dies ein Zielordner.</div>
               </div>
             </div>
           </section>
@@ -814,7 +814,7 @@
           section_basic: "Konfiguration",
           section_basic_help: "Die wichtigsten Einstellungen sind nach Themen gruppiert.",
           group_io: "Ein- und Ausgabe",
-          group_io_help: "Dateipfade fuer Quelle und Zielvideo.",
+          group_io_help: "Dateipfade fuer Quelle und Ziel.",
           group_quality: "Videoqualitaet",
           group_quality_help: "Preset, Codec und Snapshot-Verhalten.",
           group_pixel: "Verpixelung",
@@ -825,12 +825,12 @@
           group_tuning_help: "Erkennungsparameter, Performance und technische Details.",
           group_models: "Modelle und Presets",
           group_models_help: "Gewichte, Zusatzmodelle und gespeicherte Presets.",
-          label_input: "Input Video",
-          ph_input: "z.B. /videos/input.mp4",
-          help_input: "Pflichtfeld. Pfad zur Quelldatei (MP4). Drag-and-Drop auf dieses Feld versucht den Pfad zu uebernehmen.",
-          label_output: "Output Video",
-          ph_output: "z.B. /videos/output.mp4",
-          help_output: "Optional. Wenn leer, erzeugt das Script selbst einen Dateinamen.",
+          label_input: "Input Video, Ordner oder Muster",
+          ph_input: "z.B. /videos/input.mp4, /videos/source oder /videos/*.mp4",
+          help_input: "Pflichtfeld. Pfad zur Quelldatei, zu einem Ordner, zu einem Glob-Muster oder zu einer Komma-Liste von MP4-Dateien.",
+          label_output: "Output Video oder Ordner",
+          ph_output: "z.B. /videos/output.mp4 oder /videos/pixelt",
+          help_output: "Optional. Wenn leer, erzeugt das Script selbst einen Dateinamen. Bei mehreren Inputs ist dies ein Zielordner.",
           label_preset: "Preset",
           opt_preset_balanced: "balanced (default)",
           opt_preset_fast: "fast",
@@ -944,7 +944,7 @@
           section_basic: "Configuration",
           section_basic_help: "Core settings grouped by practical workflow sections.",
           group_io: "Input and output",
-          group_io_help: "Source and target video paths.",
+          group_io_help: "Source and target paths.",
           group_quality: "Video quality",
           group_quality_help: "Preset, codec and snapshot behavior.",
           group_pixel: "Anonymization",
@@ -955,12 +955,12 @@
           group_tuning_help: "Detection parameters, performance and technical details.",
           group_models: "Models and presets",
           group_models_help: "Model weights, extra models and saved presets.",
-          label_input: "Input video",
-          ph_input: "e.g. /videos/input.mp4",
-          help_input: "Required. Path to source video (MP4). Drag-and-drop onto this field tries to import the path.",
-          label_output: "Output video",
-          ph_output: "e.g. /videos/output.mp4",
-          help_output: "Optional. If empty, the script auto-generates an output name.",
+          label_input: "Input video, folder, or pattern",
+          ph_input: "e.g. /videos/input.mp4, /videos/source, or /videos/*.mp4",
+          help_input: "Required. Path to a source file, folder, glob pattern, or comma-separated list of MP4 files.",
+          label_output: "Output video or folder",
+          ph_output: "e.g. /videos/output.mp4 or /videos/pixelated",
+          help_output: "Optional. If empty, the script auto-generates an output name. With multiple inputs, this is an output folder.",
           label_preset: "Preset",
           opt_preset_balanced: "balanced (default)",
           opt_preset_fast: "fast",

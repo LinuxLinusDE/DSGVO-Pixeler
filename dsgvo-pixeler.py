@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import glob
 import json
 import os
 import re
@@ -203,8 +204,8 @@ def parse_args() -> argparse.Namespace:
         description="Kennzeichen und Gesichter in Videos erkennen und anonymisieren (Apple Silicon/MPS).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p.add_argument("--input", help="Input-Video (MP4)")
-    p.add_argument("--output", help="Output-Video (MP4)")
+    p.add_argument("--input", help="Input-Video, Ordner, Glob oder Komma-Liste (MP4)")
+    p.add_argument("--output", help="Output-Video (MP4), bei mehreren Inputs ein Zielordner")
     p.add_argument("--weights", help="YOLOv8 plates weights (Liste mit Komma)")
     p.add_argument("--faces_weights", help="YOLOv8 face weights (Liste mit Komma)")
     p.add_argument("--extra_weights", help="Zusatz-Modelle (Liste mit Komma)")
@@ -565,8 +566,8 @@ def extract_ts_from_path(path: str) -> str:
 
 
 
-def build_output_path(args: argparse.Namespace, ts: str) -> str:
-    in_dir = os.path.dirname(args.input)
+def build_output_path(args: argparse.Namespace, ts: str, output_dir: str = "") -> str:
+    in_dir = output_dir or os.path.dirname(args.input)
     in_base = os.path.splitext(os.path.basename(args.input))[0]
     weights_base = "models"
     if args.weights:
@@ -580,143 +581,49 @@ def build_output_path(args: argparse.Namespace, ts: str) -> str:
     return os.path.join(in_dir, fname)
 
 
-def main() -> int:
-    if len(sys.argv) == 1:
-        print("DSGVO-Pixeler - Kennzeichen & Gesichter anonymisieren (einfacher Start)")
-        print("Vorbereitung (einmalig):")
-        print("  python3 -m venv .venv")
-        print("  source .venv/bin/activate")
-        print("  pip install -U pip")
-        print("  pip install -r requirements.txt")
-        print("Beispiel:")
-        print("  python dsgvo-pixeler.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt")
-        print("Kurz-Erklaerung:")
-        print("  Erkennt Kennzeichen und Gesichter im Video und anonymisiert sie fuer Datenschutz.")
-        print("Wichtige Optionen (kurz):")
-        print("  --codec hevc|h264     (Standard: hevc)")
-        print("  --preset fast|balanced|quality")
-        print("  --bitrate auto        (passt Bitrate an das Original an)")
-        print("  --work_w 1920         (schneller, etwas weniger genau)")
-        print("  --imgsz 1280          (bessere Erkennung, langsamer)")
-        print("  --conf 0.25           (niedriger = mehr Treffer)")
-        print("  --anonymize blur|pixelate (Standard: blur)")
-        print("  --blur_ksize 80       (Blur-Staerke, gerade Werte werden auf ungerade aufgerundet)")
-        print("  --blocks_plates 16    (Kennzeichen, groesser = grober)")
-        print("  --blocks_faces 24     (Gesichter, groesser = grober)")
-        print("  --blocks 16           (deprecated)")
-        print("  --pad 20              (Sicherheitsrand)")
-        print("  --no_pixel_zone_px1 120,1500,900,2160 (Pixel-Zone, x1,y1,x2,y2)")
-        print("  --test_minutes 2      (nur erste 2 Minuten verarbeiten)")
-        print("  --debug_pixel         (BBox-Overlay fuer Debug)")
-        print("  --debug_no_pixel      (No-Pixel-Zonen rot einzeichnen)")
-        print("  --no_audio            (Audio entfernen)")
-        print("  --no_track            (Tracking deaktivieren)")
-        print("  --snapshot_every 5    (Snapshot alle 5 Minuten)")
-        print("  --snapshot_size 1920x1080 (Snapshot-Groesse)")
-        print("  --snapshot_dir /pfad/zu/ordner  (Default: Input-Ordner)")
-        print("  --tiling 2            (2x2 Tiling fuer kleine Kennzeichen, default)")
-        print("  --no_plates           (nur Gesichter anonymisieren)")
-        print("  --no_faces            (nur Kennzeichen anonymisieren)")
-        print("  --force_sw            (Software-Encoding erzwingen)")
-        print("Weitere Hilfe:")
-        print("  python dsgvo-pixeler.py -h")
-        return 0
-    args = parse_args()
-    resolve_paths(args)
-    if args.load_preset:
-        preset_path = args.load_preset
-        if not os.path.isfile(preset_path):
-            base_dir = os.path.dirname(args.output or args.input or "") or "."
-            if not preset_path.endswith(".json"):
-                preset_path = os.path.join(base_dir, f"{preset_path}.json")
-            else:
-                preset_path = os.path.join(base_dir, preset_path)
-        if not os.path.isfile(preset_path):
-            print(f"Preset-Datei nicht gefunden: {preset_path}", file=sys.stderr)
-            return 2
-        try:
-            preset_params = load_preset_file(preset_path)
-        except Exception as e:
-            print(f"Preset konnte nicht geladen werden: {e}", file=sys.stderr)
-            return 2
-        apply_loaded_preset(args, preset_params)
-    os.makedirs("models", exist_ok=True)
-    os.makedirs(os.path.join("models", "plates"), exist_ok=True)
-    os.makedirs(os.path.join("models", "faces"), exist_ok=True)
-    os.makedirs(os.path.join("models", "extra"), exist_ok=True)
+def expand_input_item(input_item: str) -> list:
+    if os.path.isdir(input_item):
+        videos = []
+        for name in os.listdir(input_item):
+            path = os.path.join(input_item, name)
+            if os.path.isfile(path) and name.lower().endswith(".mp4"):
+                videos.append(path)
+        videos.sort()
+        return videos
+    if glob.has_magic(input_item):
+        matches = [path for path in glob.glob(input_item) if os.path.isfile(path) and path.lower().endswith(".mp4")]
+        matches.sort()
+        return matches
+    return [input_item]
 
-    plate_models = []
-    face_models = []
-    extra_models = []
 
-    if not args.no_plates:
-        if args.weights:
-            plate_models = parse_model_list(args.weights)
-        else:
-            plate_models = list_models_in_dir(os.path.join("models", "plates"))
-    if not args.no_faces:
-        if args.faces_weights:
-            face_models = parse_model_list(args.faces_weights)
-        else:
-            face_models = list_models_in_dir(os.path.join("models", "faces"))
-    if args.extra_weights:
-        extra_models = parse_model_list(args.extra_weights)
-    elif args.use_extra:
-        extra_models = list_models_in_dir(os.path.join("models", "extra"))
+def resolve_input_videos(input_value: str) -> Tuple[list, bool]:
+    videos = []
+    seen = set()
+    input_items = [item.strip() for item in input_value.split(",") if item.strip()]
+    for item in input_items:
+        for path in expand_input_item(item):
+            norm_path = os.path.abspath(path)
+            if norm_path in seen:
+                continue
+            seen.add(norm_path)
+            videos.append(path)
+    return videos, len(input_items) > 1 or len(videos) > 1 or (len(input_items) == 1 and os.path.isdir(input_items[0]))
 
-    if not args.no_plates and not plate_models:
-        print(
-            "Kennzeichen-Modelle nicht gefunden. Lege .pt Dateien in models/plates/ oder nutze --weights.\n"
-            "Beispiel: --weights models/plates/best.pt",
-            file=sys.stderr,
-        )
-        return 2
-    if not args.no_faces and not face_models:
-        print(
-            "Gesichts-Modelle nicht gefunden. Lege .pt Dateien in models/faces/ oder nutze --faces_weights.\n"
-            "Beispiel: --faces_weights models/faces/face1.pt",
-            file=sys.stderr,
-        )
-        return 2
-    apply_preset(args)
-    ok, errors = validate_args(args)
-    if not ok:
-        for msg in errors:
-            print(msg, file=sys.stderr)
-        return 2
+
+def process_video(
+    args: argparse.Namespace,
+    plate_models: list,
+    face_models: list,
+    extra_models: list,
+    models: list,
+    run_ts: str,
+) -> int:
     exit_code = 0
 
-    if not args.input:
-        print("Input fehlt. Bitte --input angeben.", file=sys.stderr)
-        return 2
-    run_ts = ""
-    if args.output:
-        run_ts = extract_ts_from_path(args.output)
-    if not run_ts:
-        run_ts = time.strftime("%Y%m%d-%H%M%S")
     if not args.output:
         args.output = build_output_path(args, run_ts)
     save_preset_files(args)
-
-    for path in plate_models:
-        if not os.path.isfile(path):
-            print(f"Kennzeichen-Weights nicht gefunden: {path}", file=sys.stderr)
-            return 2
-    for path in face_models:
-        if not os.path.isfile(path):
-            print(f"Gesichts-Weights nicht gefunden: {path}", file=sys.stderr)
-            return 2
-    for path in extra_models:
-        if not os.path.isfile(path):
-            print(f"Extra-Weights nicht gefunden: {path}", file=sys.stderr)
-            return 2
-
-    if not shutil_which("ffmpeg"):
-        print("ffmpeg nicht gefunden. Bitte installieren: brew install ffmpeg", file=sys.stderr)
-        return 2
-    if (args.bitrate or "").lower() == "auto" and not shutil_which("ffprobe"):
-        print("ffprobe nicht gefunden. Bitte ffmpeg komplett installieren: brew install ffmpeg", file=sys.stderr)
-        return 2
 
     try:
         cap = open_video(args.input)
@@ -733,29 +640,6 @@ def main() -> int:
         print("Konnte Videoauflosung nicht ermitteln.", file=sys.stderr)
         cap.release()
         return 2
-
-    models = []
-    for path in plate_models:
-        try:
-            models.append((YOLO(path), "plates"))
-        except Exception as e:
-            print(f"YOLO Kennzeichen-Modell konnte nicht geladen werden: {path} ({e})", file=sys.stderr)
-            cap.release()
-            return 2
-    for path in face_models:
-        try:
-            models.append((YOLO(path), "faces"))
-        except Exception as e:
-            print(f"YOLO Gesichts-Modell konnte nicht geladen werden: {path} ({e})", file=sys.stderr)
-            cap.release()
-            return 2
-    for path in extra_models:
-        try:
-            models.append((YOLO(path), "extra"))
-        except Exception as e:
-            print(f"YOLO Extra-Modell konnte nicht geladen werden: {path} ({e})", file=sys.stderr)
-            cap.release()
-            return 2
 
     use_sw = args.force_sw or os.environ.get("FORCE_SW", "") == "1"
     bitrate = args.bitrate
@@ -995,6 +879,218 @@ def main() -> int:
         if snapshot_count:
             print(f"Snapshots: {snapshot_count} ({args.snapshot_dir})")
         print(f"Dauer: {proc_min}m {proc_sec}s")
+    return exit_code
+
+
+def main() -> int:
+    if len(sys.argv) == 1:
+        print("DSGVO-Pixeler - Kennzeichen & Gesichter anonymisieren (einfacher Start)")
+        print("Vorbereitung (einmalig):")
+        print("  python3 -m venv .venv")
+        print("  source .venv/bin/activate")
+        print("  pip install -U pip")
+        print("  pip install -r requirements.txt")
+        print("Beispiel:")
+        print("  python dsgvo-pixeler.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt")
+        print("Kurz-Erklaerung:")
+        print("  Erkennt Kennzeichen und Gesichter im Video und anonymisiert sie fuer Datenschutz.")
+        print("Wichtige Optionen (kurz):")
+        print("  --codec hevc|h264     (Standard: hevc)")
+        print("  --preset fast|balanced|quality")
+        print("  --bitrate auto        (passt Bitrate an das Original an)")
+        print("  --work_w 1920         (schneller, etwas weniger genau)")
+        print("  --imgsz 1280          (bessere Erkennung, langsamer)")
+        print("  --conf 0.25           (niedriger = mehr Treffer)")
+        print("  --anonymize blur|pixelate (Standard: blur)")
+        print("  --blur_ksize 80       (Blur-Staerke, gerade Werte werden auf ungerade aufgerundet)")
+        print("  --blocks_plates 16    (Kennzeichen, groesser = grober)")
+        print("  --blocks_faces 24     (Gesichter, groesser = grober)")
+        print("  --blocks 16           (deprecated)")
+        print("  --pad 20              (Sicherheitsrand)")
+        print("  --no_pixel_zone_px1 120,1500,900,2160 (Pixel-Zone, x1,y1,x2,y2)")
+        print("  --test_minutes 2      (nur erste 2 Minuten verarbeiten)")
+        print("  --debug_pixel         (BBox-Overlay fuer Debug)")
+        print("  --debug_no_pixel      (No-Pixel-Zonen rot einzeichnen)")
+        print("  --no_audio            (Audio entfernen)")
+        print("  --no_track            (Tracking deaktivieren)")
+        print("  --snapshot_every 5    (Snapshot alle 5 Minuten)")
+        print("  --snapshot_size 1920x1080 (Snapshot-Groesse)")
+        print("  --snapshot_dir /pfad/zu/ordner  (Default: Input-Ordner)")
+        print("  --input /pfad/zu/ordner  (Batch: alle .mp4-Dateien im Ordner)")
+        print("  --input '*.mp4' oder a.mp4,b.mp4  (Glob oder Mehrfachinput)")
+        print("  --tiling 2            (2x2 Tiling fuer kleine Kennzeichen, default)")
+        print("  --no_plates           (nur Gesichter anonymisieren)")
+        print("  --no_faces            (nur Kennzeichen anonymisieren)")
+        print("  --force_sw            (Software-Encoding erzwingen)")
+        print("Weitere Hilfe:")
+        print("  python dsgvo-pixeler.py -h")
+        return 0
+    args = parse_args()
+    resolve_paths(args)
+    if args.load_preset:
+        preset_path = args.load_preset
+        if not os.path.isfile(preset_path):
+            base_dir = os.path.dirname(args.output or args.input or "") or "."
+            if not preset_path.endswith(".json"):
+                preset_path = os.path.join(base_dir, f"{preset_path}.json")
+            else:
+                preset_path = os.path.join(base_dir, preset_path)
+        if not os.path.isfile(preset_path):
+            print(f"Preset-Datei nicht gefunden: {preset_path}", file=sys.stderr)
+            return 2
+        try:
+            preset_params = load_preset_file(preset_path)
+        except Exception as e:
+            print(f"Preset konnte nicht geladen werden: {e}", file=sys.stderr)
+            return 2
+        apply_loaded_preset(args, preset_params)
+    os.makedirs("models", exist_ok=True)
+    os.makedirs(os.path.join("models", "plates"), exist_ok=True)
+    os.makedirs(os.path.join("models", "faces"), exist_ok=True)
+    os.makedirs(os.path.join("models", "extra"), exist_ok=True)
+
+    plate_models = []
+    face_models = []
+    extra_models = []
+
+    if not args.no_plates:
+        if args.weights:
+            plate_models = parse_model_list(args.weights)
+        else:
+            plate_models = list_models_in_dir(os.path.join("models", "plates"))
+    if not args.no_faces:
+        if args.faces_weights:
+            face_models = parse_model_list(args.faces_weights)
+        else:
+            face_models = list_models_in_dir(os.path.join("models", "faces"))
+    if args.extra_weights:
+        extra_models = parse_model_list(args.extra_weights)
+    elif args.use_extra:
+        extra_models = list_models_in_dir(os.path.join("models", "extra"))
+
+    if not args.no_plates and not plate_models:
+        print(
+            "Kennzeichen-Modelle nicht gefunden. Lege .pt Dateien in models/plates/ oder nutze --weights.\n"
+            "Beispiel: --weights models/plates/best.pt",
+            file=sys.stderr,
+        )
+        return 2
+    if not args.no_faces and not face_models:
+        print(
+            "Gesichts-Modelle nicht gefunden. Lege .pt Dateien in models/faces/ oder nutze --faces_weights.\n"
+            "Beispiel: --faces_weights models/faces/face1.pt",
+            file=sys.stderr,
+        )
+        return 2
+    apply_preset(args)
+    ok, errors = validate_args(args)
+    if not ok:
+        for msg in errors:
+            print(msg, file=sys.stderr)
+        return 2
+
+    if not args.input:
+        print("Input fehlt. Bitte --input angeben.", file=sys.stderr)
+        return 2
+
+    input_paths, is_batch = resolve_input_videos(args.input)
+    if not input_paths:
+        print(f"Keine .mp4-Dateien gefunden fuer: {args.input}", file=sys.stderr)
+        return 2
+    if is_batch and args.output and os.path.splitext(args.output)[1].lower() == ".mp4":
+        print("Bei mehreren Inputs muss --output ein Zielordner sein, keine einzelne .mp4-Datei.", file=sys.stderr)
+        return 2
+
+    output_dir = ""
+    if is_batch and args.output:
+        output_dir = args.output
+        os.makedirs(output_dir, exist_ok=True)
+
+    run_ts = ""
+    if args.output and not is_batch:
+        run_ts = extract_ts_from_path(args.output)
+    if not run_ts:
+        run_ts = time.strftime("%Y%m%d-%H%M%S")
+
+    for path in plate_models:
+        if not os.path.isfile(path):
+            print(f"Kennzeichen-Weights nicht gefunden: {path}", file=sys.stderr)
+            return 2
+    for path in face_models:
+        if not os.path.isfile(path):
+            print(f"Gesichts-Weights nicht gefunden: {path}", file=sys.stderr)
+            return 2
+    for path in extra_models:
+        if not os.path.isfile(path):
+            print(f"Extra-Weights nicht gefunden: {path}", file=sys.stderr)
+            return 2
+
+    if not shutil_which("ffmpeg"):
+        print("ffmpeg nicht gefunden. Bitte installieren: brew install ffmpeg", file=sys.stderr)
+        return 2
+    if (args.bitrate or "").lower() == "auto" and not shutil_which("ffprobe"):
+        print("ffprobe nicht gefunden. Bitte ffmpeg komplett installieren: brew install ffmpeg", file=sys.stderr)
+        return 2
+
+    models = []
+    for path in plate_models:
+        try:
+            models.append((YOLO(path), "plates"))
+        except Exception as e:
+            print(f"YOLO Kennzeichen-Modell konnte nicht geladen werden: {path} ({e})", file=sys.stderr)
+            return 2
+    for path in face_models:
+        try:
+            models.append((YOLO(path), "faces"))
+        except Exception as e:
+            print(f"YOLO Gesichts-Modell konnte nicht geladen werden: {path} ({e})", file=sys.stderr)
+            return 2
+    for path in extra_models:
+        try:
+            models.append((YOLO(path), "extra"))
+        except Exception as e:
+            print(f"YOLO Extra-Modell konnte nicht geladen werden: {path} ({e})", file=sys.stderr)
+            return 2
+
+    if is_batch:
+        print(f"Batch-Modus: {len(input_paths)} .mp4-Datei(en) gefunden.")
+
+    exit_code = 0
+    batch_start = time.time()
+    batch_results = []
+    for index, input_path in enumerate(input_paths, start=1):
+        run_args = argparse.Namespace(**vars(args))
+        run_args.input = input_path
+        if is_batch:
+            run_args.output = build_output_path(run_args, run_ts, output_dir)
+            run_args.snapshot_dir = args.snapshot_dir
+            print("")
+            print(f"Batch {index}/{len(input_paths)}: {input_path}")
+        ret = process_video(run_args, plate_models, face_models, extra_models, models, run_ts)
+        batch_results.append((input_path, run_args.output, ret))
+        if ret != 0:
+            exit_code = ret
+            if ret == 130:
+                break
+    if is_batch:
+        elapsed = time.time() - batch_start
+        batch_min = int(elapsed // 60)
+        batch_sec = int(elapsed % 60)
+        ok_count = sum(1 for _, _, ret in batch_results if ret == 0)
+        failed = [(inp, ret) for inp, _, ret in batch_results if ret != 0]
+        not_started = len(input_paths) - len(batch_results)
+        print("")
+        print("Batch-Zusammenfassung")
+        print(f"Gefunden: {len(input_paths)}")
+        print(f"Erfolgreich: {ok_count}")
+        print(f"Fehlgeschlagen: {len(failed)}")
+        if not_started:
+            print(f"Nicht gestartet: {not_started}")
+        print(f"Dauer gesamt: {batch_min}m {batch_sec}s")
+        if failed:
+            print("Fehler:")
+            for inp, ret in failed:
+                print(f"  exit {ret}: {inp}")
     return exit_code
 
 
