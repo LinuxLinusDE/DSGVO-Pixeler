@@ -204,7 +204,7 @@ def parse_args() -> argparse.Namespace:
         description="Kennzeichen und Gesichter in Videos erkennen und anonymisieren (Apple Silicon/MPS).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p.add_argument("--input", help="Input-Video, Ordner, Glob oder Komma-Liste (MP4)")
+    p.add_argument("--input", nargs="+", help="Input-Video, Ordner, Glob oder Komma-Liste (MP4)")
     p.add_argument("--output", help="Output-Video (MP4), bei mehreren Inputs ein Zielordner")
     p.add_argument("--weights", help="YOLOv8 plates weights (Liste mit Komma)")
     p.add_argument("--faces_weights", help="YOLOv8 face weights (Liste mit Komma)")
@@ -348,6 +348,11 @@ def parse_args() -> argparse.Namespace:
 
 def prompt_value(label: str) -> str:
     return input(f"{label}: ").strip()
+
+
+def normalize_input_arg(args: argparse.Namespace) -> None:
+    if isinstance(args.input, list):
+        args.input = ",".join(args.input)
 
 
 def resolve_paths(args: argparse.Namespace) -> None:
@@ -926,7 +931,9 @@ def main() -> int:
         print("  python dsgvo-pixeler.py -h")
         return 0
     args = parse_args()
+    normalize_input_arg(args)
     resolve_paths(args)
+    normalize_input_arg(args)
     if args.load_preset:
         preset_path = args.load_preset
         if not os.path.isfile(preset_path):
