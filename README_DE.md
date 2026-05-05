@@ -372,6 +372,7 @@ Der eigene Quellcode von DSGVO-Pixeler steht unter der MIT-Lizenz. Laufzeit-Abha
 
 Wichtige Hinweise:
 - `ultralytics` / YOLO kann der AGPL-3.0 oder einer Ultralytics Enterprise License unterliegen.
+- Wenn du DSGVO-Pixeler zusammen mit Ultralytics YOLO weitergibst oder bereitstellst, bist du fuer die Einhaltung der jeweils geltenden Ultralytics-Lizenzbedingungen verantwortlich.
 - ffmpeg ist eine externe Abhaengigkeit und wird nicht mitgeliefert. Bitte installiere ffmpeg separat und beachte dessen Lizenzbedingungen (LGPL/GPL je nach Build).
 - YOLO `.pt` Modellgewichte sind nicht von der MIT-Lizenz von DSGVO-Pixeler abgedeckt, sofern die jeweiligen Rechteinhaber sie nicht ausdruecklich unter kompatiblen Bedingungen veroeffentlichen.
 

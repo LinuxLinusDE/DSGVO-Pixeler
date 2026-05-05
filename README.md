@@ -364,6 +364,7 @@ DSGVO-Pixeler's own source code is released under the MIT License. Runtime depen
 
 Important notes:
 - `ultralytics` / YOLO may be subject to AGPL-3.0 or an Ultralytics Enterprise License.
+- If you distribute or deploy DSGVO-Pixeler together with Ultralytics YOLO, you are responsible for complying with the applicable Ultralytics license terms.
 - ffmpeg is an external dependency and is not distributed with this project. Please install ffmpeg separately and follow its license terms (LGPL/GPL depending on your build).
 - YOLO `.pt` model weights are not covered by DSGVO-Pixeler's MIT license unless their respective rights holders publish them under compatible terms.
 
