@@ -359,5 +359,12 @@ ffmpeg -i input.mp4 -vsync cfr -r 25 -c:v libx264 -c:a copy normalized.mp4
 ## Privacy note
 Goal is unreadability. Use coarse pixels (`blocks` small) and sufficient `pad` so nothing is missed.
 
-## License and ffmpeg
-DSGVO-Pixeler is released under MIT. ffmpeg is an external dependency and is not distributed with this project. Please install ffmpeg separately and follow its license terms (LGPL/GPL depending on your build).
+## License and third-party components
+DSGVO-Pixeler's own source code is released under the MIT License. Runtime dependencies, external tools, and model weights are licensed separately.
+
+Important notes:
+- `ultralytics` / YOLO may be subject to AGPL-3.0 or an Ultralytics Enterprise License.
+- ffmpeg is an external dependency and is not distributed with this project. Please install ffmpeg separately and follow its license terms (LGPL/GPL depending on your build).
+- YOLO `.pt` model weights are not covered by DSGVO-Pixeler's MIT license unless their respective rights holders publish them under compatible terms.
+
+See `THIRD_PARTY_NOTICES.md` for the dependency overview.

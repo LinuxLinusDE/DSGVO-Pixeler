@@ -367,5 +367,12 @@ ffmpeg -i input.mp4 -vsync cfr -r 25 -c:v libx264 -c:a copy normalized.mp4
 ## Datenschutz-Hinweis
 Ziel ist Unlesbarkeit. Nutze grobe Pixel (`blocks` klein) und ausreichend `pad`, damit nichts uebersehen wird.
 
-## Lizenz und ffmpeg
-DSGVO-Pixeler steht unter der MIT-Lizenz. ffmpeg ist eine externe Abhaengigkeit und wird nicht mitgeliefert. Bitte installiere ffmpeg separat und beachte dessen Lizenzbedingungen (LGPL/GPL je nach Build).
+## Lizenz und Drittkomponenten
+Der eigene Quellcode von DSGVO-Pixeler steht unter der MIT-Lizenz. Laufzeit-Abhaengigkeiten, externe Tools und Modellgewichte sind separat lizenziert.
+
+Wichtige Hinweise:
+- `ultralytics` / YOLO kann der AGPL-3.0 oder einer Ultralytics Enterprise License unterliegen.
+- ffmpeg ist eine externe Abhaengigkeit und wird nicht mitgeliefert. Bitte installiere ffmpeg separat und beachte dessen Lizenzbedingungen (LGPL/GPL je nach Build).
+- YOLO `.pt` Modellgewichte sind nicht von der MIT-Lizenz von DSGVO-Pixeler abgedeckt, sofern die jeweiligen Rechteinhaber sie nicht ausdruecklich unter kompatiblen Bedingungen veroeffentlichen.
+
+Siehe `THIRD_PARTY_NOTICES.md` fuer die Uebersicht der Abhaengigkeiten.
