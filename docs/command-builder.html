@@ -514,11 +514,11 @@
               <div class="field">
                 <label for="preset" data-i18n="label_preset">Preset</label>
                 <select id="preset">
-                  <option value="balanced" data-i18n="opt_preset_balanced">balanced (default)</option>
+                  <option value="quality" data-i18n="opt_preset_quality">quality (default)</option>
                   <option value="fast" data-i18n="opt_preset_fast">fast</option>
-                  <option value="quality" data-i18n="opt_preset_quality">quality</option>
+                  <option value="balanced" data-i18n="opt_preset_balanced">balanced</option>
                 </select>
-                <div class="help" data-i18n="help_preset">Schneller Einstieg fuer Speed/Qualitaet. Default ist balanced.</div>
+                <div class="help" data-i18n="help_preset">Schneller Einstieg fuer Speed/Qualitaet. Default ist quality.</div>
               </div>
 
               <div class="field">
@@ -600,25 +600,25 @@
 
                 <div class="field">
                   <label for="conf" data-i18n="label_conf">Confidence</label>
-                  <input id="conf" type="number" step="0.01" min="0" max="1" data-i18n-placeholder="ph_conf" placeholder="z.B. 0.25" />
+                  <input id="conf" type="number" step="0.01" min="0" max="1" data-i18n-placeholder="ph_conf" placeholder="z.B. 0.2" />
                   <div class="help" data-i18n="help_conf">Empfohlen 0.1-0.6. Leer = Preset-Default.</div>
                 </div>
 
                 <div class="field">
                   <label for="imgsz" data-i18n="label_imgsz">imgsz</label>
-                  <input id="imgsz" type="number" min="0" data-i18n-placeholder="ph_imgsz" placeholder="z.B. 1280" />
+                  <input id="imgsz" type="number" min="0" data-i18n-placeholder="ph_imgsz" placeholder="z.B. 1600" />
                   <div class="help" data-i18n="help_imgsz">YOLO Inferenzgroesse. Hoeher = genauer, langsamer.</div>
                 </div>
 
                 <div class="field">
                   <label for="workW" data-i18n="label_work_w">work_w</label>
-                  <input id="workW" type="number" min="0" data-i18n-placeholder="ph_work_w" placeholder="z.B. 1920 oder 0" />
+                  <input id="workW" type="number" min="0" data-i18n-placeholder="ph_work_w" placeholder="z.B. 0 oder 1920" />
                   <div class="help" data-i18n="help_work_w">Detektionsbreite. 0 = Originalbreite.</div>
                 </div>
 
                 <div class="field">
                   <label for="pad" data-i18n="label_pad">pad</label>
-                  <input id="pad" type="number" min="0" data-i18n-placeholder="ph_pad" placeholder="z.B. 20" />
+                  <input id="pad" type="number" min="0" data-i18n-placeholder="ph_pad" placeholder="z.B. 24" />
                   <div class="help" data-i18n="help_pad">Sicherheitsrand um erkannte Boxen in Pixeln.</div>
                 </div>
 
@@ -832,10 +832,10 @@
           ph_output: "z.B. /videos/output.mp4 oder /videos/pixelt",
           help_output: "Optional. Wenn leer, erzeugt das Script selbst einen Dateinamen. Bei mehreren Inputs ist dies ein Zielordner.",
           label_preset: "Preset",
-          opt_preset_balanced: "balanced (default)",
+          opt_preset_balanced: "balanced",
           opt_preset_fast: "fast",
-          opt_preset_quality: "quality",
-          help_preset: "Schneller Einstieg fuer Speed/Qualitaet. Default ist balanced.",
+          opt_preset_quality: "quality (default)",
+          help_preset: "Schneller Einstieg fuer Speed/Qualitaet. Default ist quality.",
           label_anonymize: "Anonymisierung",
           opt_anonymize_blur: "blur (default)",
           opt_anonymize_pixelate: "pixelate",
@@ -868,17 +868,17 @@
           label_device: "Device",
           help_device: "Ultralytics Device, z.B. mps oder cpu.",
           label_conf: "Confidence",
-          ph_conf: "z.B. 0.25",
-          help_conf: "Empfohlen 0.1-0.6. Leer = Preset-Default.",
+          ph_conf: "z.B. 0.2",
+          help_conf: "Empfohlen 0.1-0.6. Leer = Preset-Default (quality: 0.2).",
           label_imgsz: "imgsz",
-          ph_imgsz: "z.B. 1280",
-          help_imgsz: "YOLO Inferenzgroesse. Hoeher = genauer, langsamer.",
+          ph_imgsz: "z.B. 1600",
+          help_imgsz: "YOLO Inferenzgroesse. Hoeher = genauer, langsamer. Leer = Preset-Default.",
           label_work_w: "work_w",
-          ph_work_w: "z.B. 1920 oder 0",
-          help_work_w: "Detektionsbreite. 0 = Originalbreite.",
+          ph_work_w: "z.B. 0 oder 1920",
+          help_work_w: "Detektionsbreite. 0 = Originalbreite. Leer = Preset-Default.",
           label_pad: "pad",
-          ph_pad: "z.B. 20",
-          help_pad: "Sicherheitsrand um erkannte Boxen in Pixeln.",
+          ph_pad: "z.B. 24",
+          help_pad: "Sicherheitsrand um erkannte Boxen in Pixeln. Leer = Preset-Default.",
           label_blur_ksize: "blur_ksize",
           help_blur_ksize: "Nur bei blur. Gerade Werte werden intern auf ungerade gesetzt.",
           label_blocks_plates: "blocks_plates",
@@ -962,10 +962,10 @@
           ph_output: "e.g. /videos/output.mp4 or /videos/pixelated",
           help_output: "Optional. If empty, the script auto-generates an output name. With multiple inputs, this is an output folder.",
           label_preset: "Preset",
-          opt_preset_balanced: "balanced (default)",
+          opt_preset_balanced: "balanced",
           opt_preset_fast: "fast",
-          opt_preset_quality: "quality",
-          help_preset: "Quick speed/quality selection. Default is balanced.",
+          opt_preset_quality: "quality (default)",
+          help_preset: "Quick speed/quality selection. Default is quality.",
           label_anonymize: "Anonymization",
           opt_anonymize_blur: "blur (default)",
           opt_anonymize_pixelate: "pixelate",
@@ -998,17 +998,17 @@
           label_device: "Device",
           help_device: "Ultralytics device, e.g. mps or cpu.",
           label_conf: "Confidence",
-          ph_conf: "e.g. 0.25",
-          help_conf: "Recommended 0.1-0.6. Empty = preset default.",
+          ph_conf: "e.g. 0.2",
+          help_conf: "Recommended 0.1-0.6. Empty = preset default (quality: 0.2).",
           label_imgsz: "imgsz",
-          ph_imgsz: "e.g. 1280",
-          help_imgsz: "YOLO inference size. Higher = better detection, slower.",
+          ph_imgsz: "e.g. 1600",
+          help_imgsz: "YOLO inference size. Higher = better detection, slower. Empty = preset default.",
           label_work_w: "work_w",
-          ph_work_w: "e.g. 1920 or 0",
-          help_work_w: "Detection width. 0 = original width.",
+          ph_work_w: "e.g. 0 or 1920",
+          help_work_w: "Detection width. 0 = original width. Empty = preset default.",
           label_pad: "pad",
-          ph_pad: "e.g. 20",
-          help_pad: "Safety padding around detected boxes in pixels.",
+          ph_pad: "e.g. 24",
+          help_pad: "Safety padding around detected boxes in pixels. Empty = preset default.",
           label_blur_ksize: "blur_ksize",
           help_blur_ksize: "Only for blur. Even values are rounded up to odd values.",
           label_blocks_plates: "blocks_plates",
@@ -1071,7 +1071,7 @@
       };
 
       const defaults = {
-        preset: "balanced",
+        preset: "quality",
         anonymize: "blur",
         codec: "hevc",
         device: "mps",

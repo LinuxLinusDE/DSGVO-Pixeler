@@ -172,13 +172,13 @@ python dsgvo-pixeler.py \
   --work_w 1280
 ```
 
-Preset fuer hohe Qualitaet (langsamer, bessere Erkennung):
+Balanced-Preset (schneller als der Standard quality):
 ```bash
 python dsgvo-pixeler.py \
   --input input.mp4 \
-  --output output_quality.mp4 \
+  --output output_balanced.mp4 \
   --weights /path/to/plate_model.pt \
-  --preset quality
+  --preset balanced
 ```
 
 Weitere Beispiele (ausfuehrlich):
@@ -292,19 +292,19 @@ python dsgvo-pixeler.py --input another.mp4 --load_preset source_preset
 Preset-Namen leiten sich vom Input-Dateinamen ab (z. B. `source.mp4` -> `source_preset.json`).
 
 ## Wichtige Parameter
-- `work_w`: Arbeitsbreite fuer Detektion (0 = Originalaufloesung). Default: 1920. Empfohlen: 0-3840.
-- `imgsz`: YOLO Inferenzgroesse (groesser = bessere Erkennung, aber langsamer). Default: 1280. Empfohlen: 640-2048.
-- `conf`: Confidence Threshold (niedriger = mehr Treffer). Default: 0.25. Empfohlen: 0.1-0.6.
+- `work_w`: Arbeitsbreite fuer Detektion (0 = Originalaufloesung). Default: 0. Empfohlen: 0-3840.
+- `imgsz`: YOLO Inferenzgroesse (groesser = bessere Erkennung, aber langsamer). Default: 1600. Empfohlen: 640-2048.
+- `conf`: Confidence Threshold (niedriger = mehr Treffer). Default: 0.2. Empfohlen: 0.1-0.6.
 - `blocks_plates`: Pixelblock-Groesse fuer Kennzeichen (groesser = grober). Default: 16. Empfohlen: 4-64.
 - `blocks_faces`: Pixelblock-Groesse fuer Gesichter (groesser = grober). Default: 24. Empfohlen: 4-64.
 - `blocks`: deprecatedes Alias fuer `blocks_plates`. Empfohlen: 4-64.
-- `pad`: Sicherheitsrand in Pixeln um jede Box. Default: 20. Empfohlen: 0-100.
+- `pad`: Sicherheitsrand in Pixeln um jede Box. Default: 24. Empfohlen: 0-100.
 - `no_pixel_zone_px1..4`: Bis zu vier No-Pixel-Zonen in Pixeln als `x1,y1,x2,y2` (oben links -> unten rechts).
 - Tipp: Nutze den eingebauten Command-Builder, um No-Pixel-Zonen lokal zu bestimmen: `docs/command-builder.html`
 - Gehostete Version: https://linuxlinusde.github.io/DSGVO-Pixeler/command-builder.html
 - `force_sw`: Software-Encoding erzwingen (nuetzlich, wenn VideoToolbox zickt).
 - `test_minutes`: Nur die ersten N Minuten verarbeiten (0 = alles). Default: 0. Empfohlen: 0-60.
-- `preset`: `fast`, `balanced`, `quality` fuer einfache Speed/Qualitaets-Wahl.
+- `preset`: `fast`, `balanced`, `quality` fuer einfache Speed/Qualitaets-Wahl. Default: `quality`.
 - `anonymize`: `pixelate` oder `blur` (Standard: `blur`).
 - `blur_ksize`: Blur-Staerke (gerade Werte werden auf ungerade aufgerundet).
 - `debug_pixel`: Zeichnet gruene Boxen zur Kontrolle ins Video.
@@ -312,7 +312,7 @@ Preset-Namen leiten sich vom Input-Dateinamen ab (z. B. `source.mp4` -> `source_
 - `no_audio`: Entfernt die Audiospur im Output.
 - `no_track`: Tracking deaktivieren (Tracking ist standardmaessig aktiv).
 - `tiling`: Frame in Kacheln teilen fuer kleine Objekte (1-10). Default: 2. Empfohlen: 1-4.
-- `snapshot_every`: Snapshot alle N Minuten speichern (0 = aus). Default: 0. Empfohlen: 0-60.
+- `snapshot_every`: Snapshot alle N Minuten speichern (0 = aus). Default: 1. Empfohlen: 0-60.
 - `snapshot_dir`: Ausgabeordner fuer Snapshots (Default: Input-Ordner).
 - `snapshot_size`: Snapshot-Groesse, z. B. 1920x1080.
 - `bitrate`: Standard ist `auto` (uebernimmt Bitrate vom Input), alternativ z. B. `50M`.

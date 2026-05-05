@@ -199,7 +199,7 @@ DEFAULT_BLUR_KSIZE = 80
 
 
 def parse_args() -> argparse.Namespace:
-    balanced = PRESETS["balanced"]
+    default_preset = PRESETS["quality"]
     p = argparse.ArgumentParser(
         description="Kennzeichen und Gesichter in Videos erkennen und anonymisieren (Apple Silicon/MPS).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -215,19 +215,19 @@ def parse_args() -> argparse.Namespace:
         "--conf",
         type=float,
         default=None,
-        help=f"Confidence Threshold. Default (preset balanced): {balanced['conf']}. Empfohlen: 0.1-0.6",
+        help=f"Confidence Threshold. Default (preset quality): {default_preset['conf']}. Empfohlen: 0.1-0.6",
     )
     p.add_argument(
         "--imgsz",
         type=int,
         default=None,
-        help=f"YOLO imgsz. Default (preset balanced): {balanced['imgsz']}. Empfohlen: 640-2048",
+        help=f"YOLO imgsz. Default (preset quality): {default_preset['imgsz']}. Empfohlen: 640-2048",
     )
     p.add_argument(
         "--work_w",
         type=int,
         default=None,
-        help=f"Arbeitsbreite fuer Detektion (0 = Original). Default (preset balanced): {balanced['work_w']}. Empfohlen: 0-3840",
+        help=f"Arbeitsbreite fuer Detektion (0 = Original). Default (preset quality): {default_preset['work_w']}. Empfohlen: 0-3840",
     )
     p.add_argument(
         "--blocks",
@@ -239,13 +239,13 @@ def parse_args() -> argparse.Namespace:
         "--blocks_plates",
         type=int,
         default=None,
-        help=f"Pixel-Blockgroesse fuer Kennzeichen (nur pixelate, groesser = grober). Default (preset balanced): {balanced['blocks_plates']}. Empfohlen: 4-64",
+        help=f"Pixel-Blockgroesse fuer Kennzeichen (nur pixelate, groesser = grober). Default (preset quality): {default_preset['blocks_plates']}. Empfohlen: 4-64",
     )
     p.add_argument(
         "--blocks_faces",
         type=int,
         default=None,
-        help=f"Pixel-Blockgroesse fuer Gesichter (nur pixelate, groesser = grober). Default (preset balanced): {balanced['blocks_faces']}. Empfohlen: 4-64",
+        help=f"Pixel-Blockgroesse fuer Gesichter (nur pixelate, groesser = grober). Default (preset quality): {default_preset['blocks_faces']}. Empfohlen: 4-64",
     )
     p.add_argument(
         "--anonymize",
@@ -263,18 +263,18 @@ def parse_args() -> argparse.Namespace:
         "--pad",
         type=int,
         default=None,
-        help=f"Sicherheitsrand in Pixel. Default (preset balanced): {balanced['pad']}. Empfohlen: 0-100",
+        help=f"Sicherheitsrand in Pixel. Default (preset quality): {default_preset['pad']}. Empfohlen: 0-100",
     )
     p.add_argument("--codec", choices=["hevc", "h264"], default="hevc", help="Video codec")
     p.add_argument(
         "--bitrate",
         default=None,
-        help=f"Video bitrate, z.B. 50M oder auto. Default (preset balanced): {balanced['bitrate']}",
+        help=f"Video bitrate, z.B. 50M oder auto. Default (preset quality): {default_preset['bitrate']}",
     )
     p.add_argument(
         "--preset",
         choices=["fast", "balanced", "quality"],
-        default="balanced",
+        default="quality",
         help="Preset fuer Speed/Qualitaet",
     )
     p.add_argument("--force_sw", action="store_true", help="Software-Encoding erzwingen (libx265/libx264)")
@@ -385,7 +385,7 @@ def parse_model_list(value: str) -> list:
 
 
 def apply_preset(args: argparse.Namespace) -> None:
-    preset = PRESETS.get(args.preset, PRESETS["balanced"])
+    preset = PRESETS.get(args.preset, PRESETS["quality"])
     if args.conf is None:
         args.conf = float(preset["conf"])
     if args.imgsz is None:
@@ -901,17 +901,17 @@ def main() -> int:
         print("  Erkennt Kennzeichen und Gesichter im Video und anonymisiert sie fuer Datenschutz.")
         print("Wichtige Optionen (kurz):")
         print("  --codec hevc|h264     (Standard: hevc)")
-        print("  --preset fast|balanced|quality")
+        print("  --preset fast|balanced|quality (Standard: quality)")
         print("  --bitrate auto        (passt Bitrate an das Original an)")
-        print("  --work_w 1920         (schneller, etwas weniger genau)")
-        print("  --imgsz 1280          (bessere Erkennung, langsamer)")
-        print("  --conf 0.25           (niedriger = mehr Treffer)")
+        print("  --work_w 0            (Standard quality: Originalbreite; 1920 = schneller)")
+        print("  --imgsz 1600          (Standard quality; groesser = genauer, langsamer)")
+        print("  --conf 0.2            (Standard quality; niedriger = mehr Treffer)")
         print("  --anonymize blur|pixelate (Standard: blur)")
         print("  --blur_ksize 80       (Blur-Staerke, gerade Werte werden auf ungerade aufgerundet)")
         print("  --blocks_plates 16    (Kennzeichen, groesser = grober)")
         print("  --blocks_faces 24     (Gesichter, groesser = grober)")
         print("  --blocks 16           (deprecated)")
-        print("  --pad 20              (Sicherheitsrand)")
+        print("  --pad 24              (Standard quality; Sicherheitsrand)")
         print("  --no_pixel_zone_px1 120,1500,900,2160 (Pixel-Zone, x1,y1,x2,y2)")
         print("  --test_minutes 2      (nur erste 2 Minuten verarbeiten)")
         print("  --debug_pixel         (BBox-Overlay fuer Debug)")

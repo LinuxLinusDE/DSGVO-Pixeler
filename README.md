@@ -164,13 +164,13 @@ python dsgvo-pixeler.py \
   --work_w 1280
 ```
 
-Quality preset (slower, better detection):
+Balanced preset (faster than the default quality preset):
 ```bash
 python dsgvo-pixeler.py \
   --input input.mp4 \
-  --output output_quality.mp4 \
+  --output output_balanced.mp4 \
   --weights /path/to/plate_model.pt \
-  --preset quality
+  --preset balanced
 ```
 
 More examples (detailed):
@@ -284,19 +284,19 @@ python dsgvo-pixeler.py --input another.mp4 --load_preset source_preset
 Preset names are derived from the input filename (e.g. `source.mp4` -> `source_preset.json`).
 
 ## Key parameters
-- `work_w`: detection width (0 = original resolution). Default: 1920. Recommended: 0-3840.
-- `imgsz`: YOLO inference size (larger = better detection, slower). Default: 1280. Recommended: 640-2048.
-- `conf`: confidence threshold (lower = more detections). Default: 0.25. Recommended: 0.1-0.6.
+- `work_w`: detection width (0 = original resolution). Default: 0. Recommended: 0-3840.
+- `imgsz`: YOLO inference size (larger = better detection, slower). Default: 1600. Recommended: 640-2048.
+- `conf`: confidence threshold (lower = more detections). Default: 0.2. Recommended: 0.1-0.6.
 - `blocks_plates`: pixel block size for plates (larger = coarser). Default: 16. Recommended: 4-64.
 - `blocks_faces`: pixel block size for faces (larger = coarser). Default: 24. Recommended: 4-64.
 - `blocks`: deprecated alias for `blocks_plates`. Recommended: 4-64.
-- `pad`: safety padding around each box (pixels). Default: 20. Recommended: 0-100.
+- `pad`: safety padding around each box (pixels). Default: 24. Recommended: 0-100.
 - `no_pixel_zone_px1..4`: up to four pixel zones as `x1,y1,x2,y2` (top-left -> bottom-right).
 - Tip: Use the built-in command builder to define no-pixel zones locally: `docs/command-builder.html`
 - Hosted version: https://linuxlinusde.github.io/DSGVO-Pixeler/command-builder.html
 - `force_sw`: force software encoding.
 - `test_minutes`: process only the first N minutes (0 = full video). Default: 0. Recommended: 0-60.
-- `preset`: `fast`, `balanced`, `quality` for quick speed/quality choice.
+- `preset`: `fast`, `balanced`, `quality` for quick speed/quality choice. Default: `quality`.
 - `anonymize`: `pixelate` or `blur` (default: `blur`).
 - `blur_ksize`: blur strength (even values are rounded up to the next odd kernel size).
 - `debug_pixel`: draws green boxes for verification.
@@ -304,7 +304,7 @@ Preset names are derived from the input filename (e.g. `source.mp4` -> `source_p
 - `no_audio`: remove the audio track in the output.
 - `no_track`: disable tracking (tracking is on by default).
 - `tiling`: split the frame into tiles for small objects (1-10). Default: 2. Recommended: 1-4.
-- `snapshot_every`: save a snapshot every N minutes (0 = off). Default: 0. Recommended: 0-60.
+- `snapshot_every`: save a snapshot every N minutes (0 = off). Default: 1. Recommended: 0-60.
 - `snapshot_dir`: output folder for snapshots (default: input folder).
 - `snapshot_size`: snapshot size, e.g. 1920x1080.
 - `bitrate`: default is `auto` (uses input bitrate), or set e.g. `50M`.
