@@ -305,7 +305,7 @@ Preset names are derived from the input filename (e.g. `source.mp4` -> `source_p
 - `no_audio`: remove the audio track in the output.
 - `no_track`: disable tracking (tracking is on by default).
 - `tiling`: split the frame into tiles for small objects (1-10). Default: 2. Recommended: 1-4.
-- `snapshot_every`: save a snapshot every N minutes (0 = off). Default: 1. Recommended: 0-60.
+- `snapshot_every`: save a snapshot every N minutes (0 = off). Default: 0. Recommended: 0-60.
 - `snapshot_dir`: output folder for snapshots (default: input folder).
 - `snapshot_size`: snapshot size, e.g. 1920x1080.
 - `bitrate`: default is `auto` (uses input bitrate), or set e.g. `50M`.
