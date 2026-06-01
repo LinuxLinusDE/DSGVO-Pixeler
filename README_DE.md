@@ -8,6 +8,7 @@ Dieses Tool verarbeitet 4K-Videos lokal und anonymisiert automatisch Kfz-Kennzei
 https://linuxlinusde.github.io/DSGVO-Pixeler/
 
 ## Voraussetzungen
+- Getestet wurde das Projekt bisher nur auf aktuellen ARM-Macs (Apple Silicon/M-Serie).
 - Python 3.10+
 - ffmpeg via Homebrew: `brew install ffmpeg`
 - Ein YOLOv8-Kennzeichenmodell als `.pt` Datei in `models/plates/` (z. B. `models/plates/best.pt`)

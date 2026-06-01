@@ -8,6 +8,7 @@ This tool processes 4K videos locally and automatically anonymizes vehicle licen
 https://linuxlinusde.github.io/DSGVO-Pixeler/
 
 ## Requirements
+- The project has only been tested on current ARM Macs (Apple Silicon/M-series).
 - Python 3.10+
 - ffmpeg via Homebrew: `brew install ffmpeg`
 - A YOLOv8 license plate model as a `.pt` file in `models/plates/` (e.g. `models/plates/best.pt`)
