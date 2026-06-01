@@ -205,7 +205,7 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p.add_argument("--input", nargs="+", help="Input-Video, Ordner, Glob oder Komma-Liste (MP4)")
-    p.add_argument("--output", help="Output-Video (MP4), bei mehreren Inputs ein Zielordner")
+    p.add_argument("--output", help="Output-Video (MP4) oder Zielordner")
     p.add_argument("--weights", help="YOLOv8 plates weights (Liste mit Komma)")
     p.add_argument("--faces_weights", help="YOLOv8 face weights (Liste mit Komma)")
     p.add_argument("--extra_weights", help="Zusatz-Modelle (Liste mit Komma)")
@@ -584,6 +584,14 @@ def build_output_path(args: argparse.Namespace, ts: str, output_dir: str = "") -
     test_tag = f"_test{args.test_minutes}m" if args.test_minutes else ""
     fname = f"{in_base}_plates_{weights_base}_{args.preset}_{args.codec}{test_tag}_{ts}.mp4"
     return os.path.join(in_dir, fname)
+
+
+def output_is_mp4_file(path: str) -> bool:
+    return os.path.splitext(path)[1].lower() == ".mp4"
+
+
+def output_is_directory_target(path: str) -> bool:
+    return os.path.isdir(path) or os.path.splitext(path)[1] == ""
 
 
 def expand_input_item(input_item: str) -> list:
@@ -1004,7 +1012,7 @@ def main() -> int:
     if not input_paths:
         print(f"Keine .mp4-Dateien gefunden fuer: {args.input}", file=sys.stderr)
         return 2
-    if is_batch and args.output and os.path.splitext(args.output)[1].lower() == ".mp4":
+    if is_batch and args.output and output_is_mp4_file(args.output):
         print("Bei mehreren Inputs muss --output ein Zielordner sein, keine einzelne .mp4-Datei.", file=sys.stderr)
         return 2
 
@@ -1012,12 +1020,17 @@ def main() -> int:
     if is_batch and args.output:
         output_dir = args.output
         os.makedirs(output_dir, exist_ok=True)
+    elif args.output and output_is_directory_target(args.output):
+        output_dir = args.output
+        os.makedirs(output_dir, exist_ok=True)
 
     run_ts = ""
-    if args.output and not is_batch:
+    if args.output and not is_batch and not output_dir:
         run_ts = extract_ts_from_path(args.output)
     if not run_ts:
         run_ts = time.strftime("%Y%m%d-%H%M%S")
+    if output_dir and not is_batch:
+        args.output = build_output_path(args, run_ts, output_dir)
 
     for path in plate_models:
         if not os.path.isfile(path):

@@ -35,7 +35,7 @@ python dsgvo-pixeler.py --input input.mp4 --output output.mp4 --weights models/p
 
 Wenn dir Fehlermeldungen wie `ModuleNotFoundError: No module named 'cv2'` erscheinen, fehlt die Umgebung. Dann nutze die Setup-Schritte oben.
 
-Hinweis: `--output` ist optional. Wenn du es weglasst, wird die Datei automatisch im gleichen Ordner wie das Input-Video erzeugt (mit Infos wie Weights, Preset und Timestamp im Namen).
+Hinweis: `--output` ist optional. Wenn du es weglasst, wird die Datei automatisch im gleichen Ordner wie das Input-Video erzeugt (mit Infos wie Weights, Preset und Timestamp im Namen). Du kannst bei einem einzelnen Video auch einen Zielordner angeben; dann erzeugt das Script den Dateinamen automatisch in diesem Ordner.
 
 Du kannst auch einen Ordner, ein Glob-Muster oder eine kommagetrennte Liste als Quelle angeben. Dann verarbeitet das Script alle passenden `.mp4`-Dateien. Wenn `--output` gesetzt ist, muss es in diesem Fall ein Zielordner sein:
 ```bash
