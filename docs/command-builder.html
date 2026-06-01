@@ -541,6 +541,12 @@
                 <input id="snapshotEvery" type="number" min="0" value="0" />
                 <div class="help" data-i18n="help_snapshot_every">Snapshot alle N Minuten (0 = aus).</div>
               </div>
+
+              <div class="field">
+                <label for="fadeSeconds" data-i18n="label_fade_seconds">fade_seconds</label>
+                <input id="fadeSeconds" type="number" min="0" step="0.1" value="1.5" />
+                <div class="help" data-i18n="help_fade_seconds">Video aus Schwarz einblenden und nach Schwarz ausblenden (0 = aus).</div>
+              </div>
             </div>
           </section>
 
@@ -898,6 +904,8 @@
           help_log_every: "Statusausgabe alle N Frames.",
           label_snapshot_every: "snapshot_every",
           help_snapshot_every: "Snapshot alle N Minuten (0 = aus).",
+          label_fade_seconds: "fade_seconds",
+          help_fade_seconds: "Video aus Schwarz einblenden und nach Schwarz ausblenden (0 = aus).",
           label_snapshot_size: "snapshot_size",
           help_snapshot_size: "Format WIDTHxHEIGHT, z.B. 1920x1080.",
           label_snapshot_dir: "snapshot_dir",
@@ -1028,6 +1036,8 @@
           help_log_every: "Print progress every N frames.",
           label_snapshot_every: "snapshot_every",
           help_snapshot_every: "Save a snapshot every N minutes (0 = off).",
+          label_fade_seconds: "fade_seconds",
+          help_fade_seconds: "Fade video in from black and out to black (0 = off).",
           label_snapshot_size: "snapshot_size",
           help_snapshot_size: "Format WIDTHxHEIGHT, e.g. 1920x1080.",
           label_snapshot_dir: "snapshot_dir",
@@ -1080,6 +1090,7 @@
         testMinutes: "",
         logEvery: "200",
         snapshotEvery: "0",
+        fadeSeconds: "1.5",
         snapshotSize: "1920x1080",
         savePreset: "off"
       };
@@ -1431,6 +1442,7 @@
         }
         appendIfChanged(parts, "--log_every", val("logEvery"), defaults.logEvery);
         appendIfChanged(parts, "--snapshot_every", val("snapshotEvery"), defaults.snapshotEvery);
+        appendIfChanged(parts, "--fade_seconds", val("fadeSeconds"), defaults.fadeSeconds);
 
         const snapshotDir = val("snapshotDir");
         if (snapshotDir) {
@@ -1893,6 +1905,7 @@
         document.getElementById("testMinutes").value = defaults.testMinutes;
         document.getElementById("logEvery").value = defaults.logEvery;
         document.getElementById("snapshotEvery").value = defaults.snapshotEvery;
+        document.getElementById("fadeSeconds").value = defaults.fadeSeconds;
         document.getElementById("snapshotSize").value = defaults.snapshotSize;
         document.getElementById("preset").value = defaults.preset;
         document.getElementById("anonymize").value = defaults.anonymize;

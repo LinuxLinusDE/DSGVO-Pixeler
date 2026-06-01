@@ -303,6 +303,7 @@ Preset names are derived from the input filename (e.g. `source.mp4` -> `source_p
 - `debug_pixel`: draws green boxes for verification.
 - `debug_no_pixel`: draws the no-pixel zones in red.
 - `no_audio`: remove the audio track in the output.
+- `fade_seconds`: fade the video in from black and out to black. Default: 1.5. Use 0 to disable.
 - `no_track`: disable tracking (tracking is on by default).
 - `tiling`: split the frame into tiles for small objects (1-10). Default: 2. Recommended: 1-4.
 - `snapshot_every`: save a snapshot every N minutes (0 = off). Default: 0. Recommended: 0-60.

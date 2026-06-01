@@ -311,6 +311,7 @@ Preset-Namen leiten sich vom Input-Dateinamen ab (z. B. `source.mp4` -> `source_
 - `debug_pixel`: Zeichnet gruene Boxen zur Kontrolle ins Video.
 - `debug_no_pixel`: Zeichnet die No-Pixel-Zonen rot ins Video.
 - `no_audio`: Entfernt die Audiospur im Output.
+- `fade_seconds`: Video aus Schwarz einblenden und nach Schwarz ausblenden. Default: 1.5. Mit 0 deaktivieren.
 - `no_track`: Tracking deaktivieren (Tracking ist standardmaessig aktiv).
 - `tiling`: Frame in Kacheln teilen fuer kleine Objekte (1-10). Default: 2. Empfohlen: 1-4.
 - `snapshot_every`: Snapshot alle N Minuten speichern (0 = aus). Default: 0. Empfohlen: 0-60.

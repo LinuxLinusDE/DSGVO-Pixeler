@@ -87,6 +87,8 @@ def build_ffmpeg_cmd(
     bitrate: str,
     use_sw: bool,
     include_audio: bool,
+    fade_seconds: float,
+    duration_seconds: float,
 ) -> list:
     if codec == "hevc":
         vcodec = "libx265" if use_sw else "hevc_videotoolbox"
@@ -96,6 +98,13 @@ def build_ffmpeg_cmd(
         raise ValueError(f"Unsupported codec: {codec}")
 
     pix_fmt = "yuv420p" if use_sw else "nv12"
+    video_filters = []
+    if fade_seconds > 0:
+        video_filters.append(f"fade=t=in:st=0:d={fade_seconds:.3f}")
+        if duration_seconds > 0:
+            fade_out_start = max(duration_seconds - fade_seconds, 0.0)
+            video_filters.append(f"fade=t=out:st={fade_out_start:.3f}:d={fade_seconds:.3f}")
+    video_filters.append(f"format={pix_fmt}")
     cmd = [
         "ffmpeg",
         "-y",
@@ -114,7 +123,7 @@ def build_ffmpeg_cmd(
         "-map",
         "0:v:0",
         "-vf",
-        f"format={pix_fmt}",
+        ",".join(video_filters),
         "-pix_fmt",
         pix_fmt,
         "-c:v",
@@ -196,6 +205,7 @@ PRESETS = {
     "quality": {"conf": 0.2, "imgsz": 1600, "work_w": 0, "blocks_plates": 16, "blocks_faces": 24, "pad": 24, "bitrate": "auto"},
 }
 DEFAULT_BLUR_KSIZE = 80
+DEFAULT_FADE_SECONDS = 1.5
 
 
 def parse_args() -> argparse.Namespace:
@@ -281,6 +291,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--debug_pixel", dest="debug_pixel", action="store_true", help="BBox-Overlay fuer Debug einzeichnen")
     p.add_argument("--debug_overlay", dest="debug_pixel", action="store_true", help=argparse.SUPPRESS)
     p.add_argument("--no_audio", action="store_true", help="Audio entfernen")
+    p.add_argument(
+        "--fade_seconds",
+        type=float,
+        default=DEFAULT_FADE_SECONDS,
+        help=f"Video am Anfang aus Schwarz einblenden und am Ende nach Schwarz ausblenden (0 = aus). Standard: {DEFAULT_FADE_SECONDS}",
+    )
     p.add_argument("--no_track", action="store_true", help="Tracking deaktivieren")
     p.add_argument(
         "--snapshot_every",
@@ -422,6 +438,8 @@ def validate_args(args: argparse.Namespace) -> Tuple[bool, list]:
         errors.append("Ungueltiger Wert fuer --pad (muss >= 0 sein).")
     if args.snapshot_every is not None and args.snapshot_every < 0:
         errors.append("Ungueltiger Wert fuer --snapshot_every (muss >= 0 sein).")
+    if args.fade_seconds is not None and args.fade_seconds < 0:
+        errors.append("Ungueltiger Wert fuer --fade_seconds (muss >= 0 sein).")
     if args.tiling is not None and (args.tiling < 1 or args.tiling > 10):
         errors.append("Ungueltiger Wert fuer --tiling (1-10).")
     if args.test_minutes is not None and args.test_minutes < 0:
@@ -484,6 +502,7 @@ def apply_loaded_preset(args: argparse.Namespace, params: dict) -> None:
         "debug_pixel": "--debug_pixel",
         "debug_no_pixel": "--debug_no_pixel",
         "no_audio": "--no_audio",
+        "fade_seconds": "--fade_seconds",
         "no_track": "--no_track",
         "snapshot_every": "--snapshot_every",
         "snapshot_dir": "--snapshot_dir",
@@ -534,6 +553,7 @@ def save_preset_files(args: argparse.Namespace) -> None:
         "debug_pixel": args.debug_pixel,
         "debug_no_pixel": args.debug_no_pixel,
         "no_audio": args.no_audio,
+        "fade_seconds": args.fade_seconds,
         "no_track": args.no_track,
         "snapshot_every": args.snapshot_every,
         "snapshot_dir": args.snapshot_dir,
@@ -659,7 +679,6 @@ def process_video(
     if isinstance(bitrate, str) and bitrate.lower() == "auto":
         bitrate = probe_bitrate(args.input)
     bitrate_used = bitrate
-    cmd = build_ffmpeg_cmd(args.output, args.input, w, h, fps, args.codec, bitrate, use_sw, not args.no_audio)
 
     proc = None
     aborted = False
@@ -669,6 +688,21 @@ def process_video(
         max_frames = int(fps * 60 * args.test_minutes)
     if max_frames and total_frames > 0:
         total_frames = min(total_frames, max_frames)
+    duration_frames = total_frames if total_frames > 0 else max_frames
+    duration_seconds = (duration_frames / fps) if duration_frames > 0 and fps > 0 else 0.0
+    cmd = build_ffmpeg_cmd(
+        args.output,
+        args.input,
+        w,
+        h,
+        fps,
+        args.codec,
+        bitrate,
+        use_sw,
+        not args.no_audio,
+        args.fade_seconds,
+        duration_seconds,
+    )
     start_time = time.time()
     snapshot_count = 0
     in_base = os.path.splitext(os.path.basename(args.input))[0]
@@ -887,6 +921,7 @@ def process_video(
         print(f"Objekte: {', '.join(targets) if targets else 'keine'}")
         print(f"Encoder: {args.codec}{' (SW)' if use_sw else ' (HW)'}")
         print(f"Audio: {'aus' if args.no_audio else 'an'}")
+        print(f"Video-Fade: {args.fade_seconds:g}s" if args.fade_seconds > 0 else "Video-Fade: aus")
         print(f"Tracking: {'aus' if args.no_track else 'an'}")
         print(f"Tiling: {args.tiling}x{args.tiling}")
         if snapshot_count:
@@ -925,6 +960,7 @@ def main() -> int:
         print("  --debug_pixel         (BBox-Overlay fuer Debug)")
         print("  --debug_no_pixel      (No-Pixel-Zonen rot einzeichnen)")
         print("  --no_audio            (Audio entfernen)")
+        print("  --fade_seconds 1.5    (Video-Fade aus/nach Schwarz, 0 = aus)")
         print("  --no_track            (Tracking deaktivieren)")
         print("  --snapshot_every 5    (Snapshot alle 5 Minuten)")
         print("  --snapshot_size 1920x1080 (Snapshot-Groesse)")
