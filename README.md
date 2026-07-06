@@ -107,7 +107,7 @@ Encoding and audio
 - `-movflags +faststart` enables fast streaming start.
 
 Logging
-- Progress output includes % and ETA, plus effective FPS.
+- Progress output includes %, ETA, current FPS, and average FPS.
 - Summary at the end shows resolution, bitrate, encoder, audio, tracking, tiling, and model counts.
 
 ## Tiling
@@ -310,7 +310,7 @@ Preset names are derived from the input filename (e.g. `source.mp4` -> `source_p
 - `snapshot_dir`: output folder for snapshots (default: input folder).
 - `snapshot_size`: snapshot size, e.g. 1920x1080.
 - `bitrate`: default is `auto` (uses input bitrate), or set e.g. `50M`.
-- `log_every`: log output every N frames. Default: 200. Recommended: 50-1000.
+- `log_every`: log output every N frames with current and average FPS. Default: 200. Recommended: 50-1000.
 - `save_preset`: save used parameters in the output folder as `*_preset.json`/`.txt`.
 - `load_preset`: load a preset JSON by file path or name (relative to input/output folder).
 - `faces_weights`: list of face models (default: all in `models/faces/`).

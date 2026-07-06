@@ -108,6 +108,10 @@ def build_ffmpeg_cmd(
     cmd = [
         "ffmpeg",
         "-y",
+        "-hide_banner",
+        "-nostats",
+        "-loglevel",
+        "error",
         "-f",
         "rawvideo",
         "-pix_fmt",
@@ -326,7 +330,7 @@ def parse_args() -> argparse.Namespace:
         "--log_every",
         type=int,
         default=200,
-        help="Log alle n Frames. Empfohlen: 50-1000",
+        help="Log alle n Frames mit aktuellen und durchschnittlichen FPS. Empfohlen: 50-1000",
     )
     p.add_argument(
         "--save_preset",
@@ -704,6 +708,8 @@ def process_video(
         duration_seconds,
     )
     start_time = time.time()
+    last_log_time = start_time
+    last_log_frame = 0
     snapshot_count = 0
     in_base = os.path.splitext(os.path.basename(args.input))[0]
     snapshot_prefix = f"{in_base}_snap_{run_ts}"
@@ -852,17 +858,26 @@ def process_video(
 
             frame_idx += 1
             if args.log_every > 0 and frame_idx % args.log_every == 0:
-                elapsed = time.time() - start_time
-                fps_eff = frame_idx / elapsed if elapsed > 0 else 0.0
-                if total_frames > 0 and fps_eff > 0:
+                now = time.time()
+                elapsed = now - start_time
+                log_elapsed = now - last_log_time
+                log_frames = frame_idx - last_log_frame
+                fps_avg = frame_idx / elapsed if elapsed > 0 else 0.0
+                fps_current = log_frames / log_elapsed if log_elapsed > 0 else fps_avg
+                last_log_time = now
+                last_log_frame = frame_idx
+                if total_frames > 0 and fps_avg > 0:
                     remaining = max(total_frames - frame_idx, 0)
-                    eta_sec = int(remaining / fps_eff)
+                    eta_sec = int(remaining / fps_avg)
                     eta_min = eta_sec // 60
                     eta_rem = eta_sec % 60
                     pct = (frame_idx / total_frames) * 100.0
-                    print(f"Processed: {frame_idx} | {pct:.1f}% | ETA {eta_min}m {eta_rem}s | {fps_eff:.2f} fps")
+                    print(
+                        f"Processed: {frame_idx} | {pct:.1f}% | ETA {eta_min}m {eta_rem}s | "
+                        f"{fps_current:.2f} fps current | {fps_avg:.2f} fps avg"
+                    )
                 else:
-                    print(f"Processed frames: {frame_idx}")
+                    print(f"Processed frames: {frame_idx} | {fps_current:.2f} fps current | {fps_avg:.2f} fps avg")
             if max_frames and frame_idx >= max_frames:
                 break
 
