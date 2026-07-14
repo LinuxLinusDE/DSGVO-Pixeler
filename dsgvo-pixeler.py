@@ -333,6 +333,12 @@ def parse_args() -> argparse.Namespace:
         help="Log alle n Frames mit aktuellen und durchschnittlichen FPS. Empfohlen: 50-1000",
     )
     p.add_argument(
+        "--log_seconds",
+        type=int,
+        default=5,
+        help="Log spaetestens alle N Sekunden (0 = aus). Hilfreich bei langsamem Tiling",
+    )
+    p.add_argument(
         "--save_preset",
         choices=["off", "json", "txt", "both"],
         default="off",
@@ -733,8 +739,40 @@ def process_video(
             zones_px.append((zx1, zy1, zx2, zy2))
         except Exception:
             continue
+
+    def print_progress(processed_frames: int, current_frame: int = 0) -> None:
+        nonlocal last_log_time, last_log_frame
+        now = time.time()
+        elapsed = now - start_time
+        log_elapsed = now - last_log_time
+        log_frames = processed_frames - last_log_frame
+        fps_avg = processed_frames / elapsed if elapsed > 0 and processed_frames > 0 else 0.0
+        fps_current = log_frames / log_elapsed if log_elapsed > 0 else fps_avg
+        last_log_time = now
+        last_log_frame = processed_frames
+        prefix = f"Processed: {processed_frames}"
+        if current_frame > processed_frames:
+            prefix = f"Processing frame: {current_frame} | processed: {processed_frames}"
+        if total_frames > 0 and fps_avg > 0:
+            remaining = max(total_frames - processed_frames, 0)
+            eta_sec = int(remaining / fps_avg)
+            eta_min = eta_sec // 60
+            eta_rem = eta_sec % 60
+            pct = (processed_frames / total_frames) * 100.0
+            print(
+                f"{prefix} | {pct:.1f}% | ETA {eta_min}m {eta_rem}s | "
+                f"{fps_current:.2f} fps current | {fps_avg:.2f} fps avg",
+                flush=True,
+            )
+        else:
+            print(f"{prefix} | {fps_current:.2f} fps current | {fps_avg:.2f} fps avg", flush=True)
+
     try:
         proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+        if total_frames > 0:
+            print(f"Starte Verarbeitung: 0/{total_frames} Frames | Status alle {args.log_seconds}s oder {args.log_every} Frames", flush=True)
+        else:
+            print(f"Starte Verarbeitung: Status alle {args.log_seconds}s oder {args.log_every} Frames", flush=True)
         while True:
             ret, frame = cap.read()
             if not ret:
@@ -842,6 +880,9 @@ def process_video(
                             if args.debug_pixel:
                                 cv2.rectangle(frame, (bx1, by1), (bx2, by2), (0, 255, 0), 2)
 
+                    if args.log_seconds > 0 and (time.time() - last_log_time) >= args.log_seconds:
+                        print_progress(frame_idx, frame_idx + 1)
+
             if next_snapshot_frame and frame_idx >= next_snapshot_frame:
                 snap = frame
                 if snap_w > 0 and snap_h > 0:
@@ -857,27 +898,10 @@ def process_video(
             proc.stdin.write(frame.tobytes())
 
             frame_idx += 1
-            if args.log_every > 0 and frame_idx % args.log_every == 0:
-                now = time.time()
-                elapsed = now - start_time
-                log_elapsed = now - last_log_time
-                log_frames = frame_idx - last_log_frame
-                fps_avg = frame_idx / elapsed if elapsed > 0 else 0.0
-                fps_current = log_frames / log_elapsed if log_elapsed > 0 else fps_avg
-                last_log_time = now
-                last_log_frame = frame_idx
-                if total_frames > 0 and fps_avg > 0:
-                    remaining = max(total_frames - frame_idx, 0)
-                    eta_sec = int(remaining / fps_avg)
-                    eta_min = eta_sec // 60
-                    eta_rem = eta_sec % 60
-                    pct = (frame_idx / total_frames) * 100.0
-                    print(
-                        f"Processed: {frame_idx} | {pct:.1f}% | ETA {eta_min}m {eta_rem}s | "
-                        f"{fps_current:.2f} fps current | {fps_avg:.2f} fps avg"
-                    )
-                else:
-                    print(f"Processed frames: {frame_idx} | {fps_current:.2f} fps current | {fps_avg:.2f} fps avg")
+            log_by_frame = args.log_every > 0 and frame_idx % args.log_every == 0
+            log_by_time = args.log_seconds > 0 and (time.time() - last_log_time) >= args.log_seconds
+            if log_by_frame or log_by_time:
+                print_progress(frame_idx)
             if max_frames and frame_idx >= max_frames:
                 break
 
@@ -977,6 +1001,7 @@ def main() -> int:
         print("  --no_audio            (Audio entfernen)")
         print("  --fade_seconds 1.5    (Video-Fade aus/nach Schwarz, 0 = aus)")
         print("  --no_track            (Tracking deaktivieren)")
+        print("  --log_seconds 5       (Status spaetestens alle 5 Sekunden)")
         print("  --snapshot_every 5    (Snapshot alle 5 Minuten)")
         print("  --snapshot_size 1920x1080 (Snapshot-Groesse)")
         print("  --snapshot_dir /pfad/zu/ordner  (Default: Input-Ordner)")

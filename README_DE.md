@@ -108,6 +108,7 @@ Encoding und Audio
 
 Logging
 - Fortschritt mit Prozent und ETA, plus aktuelle und durchschnittliche FPS.
+- `--log_seconds` schreibt standardmaessig spaetestens alle N Sekunden Fortschritt, damit langsames Tiling nicht bis zum naechsten `--log_every`-Frameintervall still bleibt.
 - Zusammenfassung am Ende mit Aufloesung, Bitrate, Encoder, Audio, Tracking, Tiling und Modellanzahl.
 
 ## Tiling
@@ -319,6 +320,7 @@ Preset-Namen leiten sich vom Input-Dateinamen ab (z. B. `source.mp4` -> `source_
 - `snapshot_size`: Snapshot-Groesse, z. B. 1920x1080.
 - `bitrate`: Standard ist `auto` (uebernimmt Bitrate vom Input), alternativ z. B. `50M`.
 - `log_every`: Log-Ausgabe alle N Frames mit aktuellen und durchschnittlichen FPS. Default: 200. Empfohlen: 50-1000.
+- `log_seconds`: Log-Ausgabe spaetestens alle N Sekunden. Default: 5. Mit 0 zeitbasierten Fortschritt deaktivieren.
 - `save_preset`: Speichert verwendete Parameter im Output-Ordner als `*_preset.json`/`.txt`.
 - `load_preset`: Preset-JSON per Dateipfad oder Name laden (relativ zu Input/Output-Ordner).
 - `faces_weights`: Liste der Gesichtsmodelle (Default: alle in `models/faces/`).
