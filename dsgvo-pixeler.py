@@ -2,6 +2,7 @@
 import argparse
 import glob
 import json
+import math
 import os
 import re
 import subprocess
@@ -75,6 +76,374 @@ def boxes_overlap(a: Tuple[int, int, int, int], b: Tuple[int, int, int, int]) ->
     ax1, ay1, ax2, ay2 = a
     bx1, by1, bx2, by2 = b
     return ax1 < bx2 and ax2 > bx1 and ay1 < by2 and ay2 > by1
+
+
+def clip_box(box: Tuple[int, int, int, int], w: int, h: int) -> Tuple[int, int, int, int]:
+    x1, y1, x2, y2 = box
+    return max(0, min(w, x1)), max(0, min(h, y1)), max(0, min(w, x2)), max(0, min(h, y2))
+
+
+def map_detection_box(
+    xyxy,
+    tile_x: int,
+    tile_y: int,
+    scale_x: float,
+    scale_y: float,
+    w: int,
+    h: int,
+) -> Tuple[int, int, int, int]:
+    box = (
+        math.floor((float(xyxy[0]) + tile_x) / scale_x),
+        math.floor((float(xyxy[1]) + tile_y) / scale_y),
+        math.ceil((float(xyxy[2]) + tile_x) / scale_x),
+        math.ceil((float(xyxy[3]) + tile_y) / scale_y),
+    )
+    return clip_box(box, w, h)
+
+
+def box_area(box: Tuple[int, int, int, int]) -> int:
+    x1, y1, x2, y2 = box
+    return max(0, x2 - x1) * max(0, y2 - y1)
+
+
+def box_iou(a: Tuple[int, int, int, int], b: Tuple[int, int, int, int]) -> float:
+    ax1, ay1, ax2, ay2 = a
+    bx1, by1, bx2, by2 = b
+    ix1 = max(ax1, bx1)
+    iy1 = max(ay1, by1)
+    ix2 = min(ax2, bx2)
+    iy2 = min(ay2, by2)
+    intersection = box_area((ix1, iy1, ix2, iy2))
+    if intersection <= 0:
+        return 0.0
+    union = box_area(a) + box_area(b) - intersection
+    return intersection / union if union > 0 else 0.0
+
+
+def should_merge_boxes(
+    a: Tuple[int, int, int, int],
+    b: Tuple[int, int, int, int],
+    max_gap: int = 2,
+) -> bool:
+    ax1, ay1, ax2, ay2 = a
+    bx1, by1, bx2, by2 = b
+    overlap_w = min(ax2, bx2) - max(ax1, bx1)
+    overlap_h = min(ay2, by2) - max(ay1, by1)
+    if overlap_w > 0 and overlap_h > 0:
+        # Privacy-first: low-IoU partial detections must not leave a visible seam.
+        return True
+
+    a_w, a_h = ax2 - ax1, ay2 - ay1
+    b_w, b_h = bx2 - bx1, by2 - by1
+    horizontal_gap = max(bx1 - ax2, ax1 - bx2, 0)
+    vertical_gap = max(by1 - ay2, ay1 - by2, 0)
+    vertical_overlap_ratio = max(0, overlap_h) / max(1, min(a_h, b_h))
+    horizontal_overlap_ratio = max(0, overlap_w) / max(1, min(a_w, b_w))
+    return (
+        horizontal_gap <= max_gap and vertical_overlap_ratio >= 0.5
+    ) or (
+        vertical_gap <= max_gap and horizontal_overlap_ratio >= 0.5
+    )
+
+
+def merge_overlapping_boxes(
+    boxes: list,
+    max_gap: int = 2,
+) -> list:
+    source = sorted(set(tuple(box) for box in boxes if box_area(tuple(box)) > 0))
+    merged = []
+    visited = set()
+    for start_idx in range(len(source)):
+        if start_idx in visited:
+            continue
+        component = []
+        stack = [start_idx]
+        visited.add(start_idx)
+        while stack:
+            current_idx = stack.pop()
+            component.append(source[current_idx])
+            for other_idx in range(len(source)):
+                if other_idx in visited:
+                    continue
+                if should_merge_boxes(source[current_idx], source[other_idx], max_gap):
+                    visited.add(other_idx)
+                    stack.append(other_idx)
+        merged.append(
+            (
+                min(box[0] for box in component),
+                min(box[1] for box in component),
+                max(box[2] for box in component),
+                max(box[3] for box in component),
+            )
+        )
+    return sorted(merged)
+
+
+def build_tiles(w: int, h: int, count: int, overlap: float) -> list:
+    if count <= 1:
+        return [(0, 0, w, h)]
+
+    def axis_segments(length: int) -> list:
+        denominator = count - ((count - 1) * overlap)
+        tile_size = min(length, max(1, int(math.ceil(length / denominator))))
+        max_start = max(0, length - tile_size)
+        segments = []
+        for index in range(count):
+            start = int(round((index * max_start) / (count - 1)))
+            segment = (start, min(length, start + tile_size))
+            if segment[1] > segment[0] and segment not in segments:
+                segments.append(segment)
+        return segments
+
+    x_segments = axis_segments(w)
+    y_segments = axis_segments(h)
+    return [(x0, y0, x1, y1) for y0, y1 in y_segments for x0, x1 in x_segments]
+
+
+def subtract_box(
+    box: Tuple[int, int, int, int],
+    cut: Tuple[int, int, int, int],
+) -> list:
+    x1, y1, x2, y2 = box
+    cx1, cy1, cx2, cy2 = cut
+    ix1 = max(x1, cx1)
+    iy1 = max(y1, cy1)
+    ix2 = min(x2, cx2)
+    iy2 = min(y2, cy2)
+    if ix2 <= ix1 or iy2 <= iy1:
+        return [box]
+    pieces = [
+        (x1, y1, x2, iy1),
+        (x1, iy2, x2, y2),
+        (x1, iy1, ix1, iy2),
+        (ix2, iy1, x2, iy2),
+    ]
+    return [piece for piece in pieces if box_area(piece) > 0]
+
+
+def subtract_zones(box: Tuple[int, int, int, int], zones: list) -> list:
+    pieces = [box]
+    for zone in zones:
+        next_pieces = []
+        for piece in pieces:
+            next_pieces.extend(subtract_box(piece, zone))
+        pieces = next_pieces
+        if not pieces:
+            break
+    return pieces
+
+
+def anonymize_box_excluding_zones(
+    frame: np.ndarray,
+    box: Tuple[int, int, int, int],
+    zones: list,
+    mode: str,
+    blur_ksize: int,
+    blocks: int,
+) -> None:
+    x1, y1, x2, y2 = box
+    if x2 <= x1 or y2 <= y1:
+        return
+    overlapping_zones = [zone for zone in zones if boxes_overlap(box, zone)]
+    if not overlapping_zones:
+        if mode == "blur":
+            blur_roi(frame, x1, y1, x2, y2, blur_ksize)
+        else:
+            pixelate_roi(frame, x1, y1, x2, y2, blocks)
+        return
+
+    visible_pieces = subtract_zones(box, overlapping_zones)
+    if not visible_pieces:
+        return
+    processed = frame[y1:y2, x1:x2].copy()
+    if mode == "blur":
+        blur_roi(processed, 0, 0, x2 - x1, y2 - y1, blur_ksize)
+    else:
+        pixelate_roi(processed, 0, 0, x2 - x1, y2 - y1, blocks)
+    for px1, py1, px2, py2 in visible_pieces:
+        frame[py1:py2, px1:px2] = processed[py1 - y1:py2 - y1, px1 - x1:px2 - x1]
+
+
+def shift_box(
+    box: Tuple[int, int, int, int],
+    velocity: Tuple[float, float],
+    w: int,
+    h: int,
+) -> Tuple[int, int, int, int]:
+    dx, dy = velocity
+    shifted = (
+        int(round(box[0] + dx)),
+        int(round(box[1] + dy)),
+        int(round(box[2] + dx)),
+        int(round(box[3] + dy)),
+    )
+    return clip_box(shifted, w, h)
+
+
+def union_boxes(a: Tuple[int, int, int, int], b: Tuple[int, int, int, int]) -> Tuple[int, int, int, int]:
+    return min(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3])
+
+
+def temporal_match_score(
+    predicted: Tuple[int, int, int, int],
+    detection: Tuple[int, int, int, int],
+) -> float:
+    return box_iou(predicted, detection)
+
+
+def update_temporal_masks(
+    detections: list,
+    tracks: list,
+    ttl: int,
+    w: int,
+    h: int,
+) -> list:
+    current = []
+    for kind, box in detections:
+        clipped = clip_box(box, w, h)
+        if box_area(clipped) > 0:
+            current.append((kind, clipped))
+    if ttl <= 0:
+        tracks.clear()
+        return [(kind, box, 0) for kind, box in current]
+
+    for track in tracks:
+        track["history"] = [
+            (box, age + 1)
+            for box, age in track.get("history", [(track["box"], 0)])
+            if age + 1 <= ttl
+        ]
+
+    predicted = []
+    for track in tracks:
+        next_box = shift_box(track["box"], track["velocity"], w, h)
+        if box_area(next_box) <= 0:
+            next_box = track.get("last_observed_box", track["box"])
+        predicted.append(next_box)
+    candidates = []
+    for track_idx, track in enumerate(tracks):
+        for detection_idx, (kind, box) in enumerate(current):
+            if track["kind"] != kind:
+                continue
+            score = temporal_match_score(predicted[track_idx], box)
+            if score > 0.0:
+                candidates.append((score, track_idx, detection_idx))
+    candidates.sort(reverse=True)
+
+    matched_tracks = {}
+    matched_detections = set()
+    for _, track_idx, detection_idx in candidates:
+        if track_idx in matched_tracks or detection_idx in matched_detections:
+            continue
+        matched_tracks[track_idx] = detection_idx
+        matched_detections.add(detection_idx)
+
+    next_tracks = []
+    for track_idx, track in enumerate(tracks):
+        if track_idx in matched_tracks:
+            detection_idx = matched_tracks[track_idx]
+            kind, box = current[detection_idx]
+            old_box = track.get("last_observed_box", track["box"])
+            old_center = ((old_box[0] + old_box[2]) / 2.0, (old_box[1] + old_box[3]) / 2.0)
+            new_center = ((box[0] + box[2]) / 2.0, (box[1] + box[3]) / 2.0)
+            elapsed_frames = max(1, int(track["missed"]) + 1)
+            history = track["history"]
+            history.append((box, 0))
+            next_tracks.append(
+                {
+                    "kind": kind,
+                    "box": box,
+                    "last_observed_box": box,
+                    "velocity": (
+                        (new_center[0] - old_center[0]) / elapsed_frames,
+                        (new_center[1] - old_center[1]) / elapsed_frames,
+                    ),
+                    "missed": 0,
+                    "history": history,
+                }
+            )
+            continue
+        missed = int(track["missed"]) + 1
+        if missed <= ttl:
+            velocity = tuple(float(value) * 0.75 for value in track["velocity"])
+            next_tracks.append(
+                {
+                    "kind": track["kind"],
+                    "box": predicted[track_idx],
+                    "last_observed_box": track.get("last_observed_box", track["box"]),
+                    "velocity": velocity,
+                    "missed": missed,
+                    "history": track["history"],
+                }
+            )
+
+    for detection_idx, (kind, box) in enumerate(current):
+        if detection_idx in matched_detections:
+            continue
+        next_tracks.append(
+            {
+                "kind": kind,
+                "box": box,
+                "last_observed_box": box,
+                "velocity": (0.0, 0.0),
+                "missed": 0,
+                "history": [(box, 0)],
+            }
+        )
+
+    tracks[:] = next_tracks
+    masks = []
+    for track in tracks:
+        for history_box, _ in track["history"]:
+            masks.append((track["kind"], history_box, 0))
+        if track["missed"] > 0:
+            safety_box = union_boxes(track["last_observed_box"], track["box"])
+            masks.append((track["kind"], safety_box, track["missed"]))
+    return masks
+
+
+def reset_ultralytics_trackers(models: list) -> Tuple[bool, list]:
+    errors = []
+    for model, _ in models:
+        predictor = getattr(model, "predictor", None)
+        trackers = getattr(predictor, "trackers", []) or []
+        for tracker in trackers:
+            reset = getattr(tracker, "reset", None)
+            if not callable(reset):
+                errors.append("Tracker bietet keine reset()-Methode")
+                continue
+            try:
+                reset()
+            except Exception as e:
+                errors.append(str(e))
+    return not errors, errors
+
+
+def capture_raw_detections(predictor) -> None:
+    raw_xyxy = []
+    for result in getattr(predictor, "results", []) or []:
+        boxes = getattr(result, "boxes", None)
+        if boxes is None or len(boxes) == 0:
+            raw_xyxy.append(np.empty((0, 4), dtype=float))
+        else:
+            raw_xyxy.append(boxes.xyxy.cpu().numpy().copy())
+    predictor._dsgvo_raw_xyxy = raw_xyxy
+
+
+def install_raw_detection_capture(model) -> bool:
+    callback_sets = [getattr(model, "callbacks", None)]
+    predictor = getattr(model, "predictor", None)
+    if predictor is not None:
+        callback_sets.append(getattr(predictor, "callbacks", None))
+    for callbacks in callback_sets:
+        if not isinstance(callbacks, dict):
+            return False
+        event_callbacks = callbacks.get("on_predict_postprocess_end")
+        if not isinstance(event_callbacks, list):
+            return False
+        event_callbacks[:] = [callback for callback in event_callbacks if callback is not capture_raw_detections]
+        event_callbacks.insert(0, capture_raw_detections)
+    return True
 
 
 def build_ffmpeg_cmd(
@@ -210,6 +579,8 @@ PRESETS = {
 }
 DEFAULT_BLUR_KSIZE = 80
 DEFAULT_FADE_SECONDS = 1.5
+DEFAULT_TILE_OVERLAP = 0.2
+DEFAULT_MASK_TTL = 3
 
 
 def parse_args() -> argparse.Namespace:
@@ -301,7 +672,7 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_FADE_SECONDS,
         help=f"Video am Anfang aus Schwarz einblenden und am Ende nach Schwarz ausblenden (0 = aus). Standard: {DEFAULT_FADE_SECONDS}",
     )
-    p.add_argument("--no_track", action="store_true", help="Tracking deaktivieren")
+    p.add_argument("--no_track", action="store_true", help="Ultralytics-Tracking deaktivieren (Sicherheitsmaske bleibt aktiv)")
     p.add_argument(
         "--snapshot_every",
         type=int,
@@ -319,6 +690,18 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=2,
         help="Tiling fuer kleine Objekte (1-10, 1 = aus). Empfohlen: 1-4",
+    )
+    p.add_argument(
+        "--tile_overlap",
+        type=float,
+        default=DEFAULT_TILE_OVERLAP,
+        help=f"Ueberlappung benachbarter Tiles als Anteil (0.0-0.5). Standard: {DEFAULT_TILE_OVERLAP}",
+    )
+    p.add_argument(
+        "--mask_ttl",
+        type=int,
+        default=DEFAULT_MASK_TTL,
+        help=f"Erkannte Boxen bei kurzen Aussetzern N Frames weiter maskieren (0 = aus). Standard: {DEFAULT_MASK_TTL}",
     )
     p.add_argument(
         "--test_minutes",
@@ -352,7 +735,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--no_pixel_zone_px1",
         default="",
-        help="No-Pixel-Zone in Pixeln als x1,y1,x2,y2 (z.B. 120,1500,900,2160). Leer = aus",
+        help="Unveraenderte Zone als x1,y1,x2,y2; ueberlappende Boxteile ausserhalb werden weiter anonymisiert. Leer = aus",
     )
     p.add_argument(
         "--no_pixel_zone_px2",
@@ -452,6 +835,10 @@ def validate_args(args: argparse.Namespace) -> Tuple[bool, list]:
         errors.append("Ungueltiger Wert fuer --fade_seconds (muss >= 0 sein).")
     if args.tiling is not None and (args.tiling < 1 or args.tiling > 10):
         errors.append("Ungueltiger Wert fuer --tiling (1-10).")
+    if args.tile_overlap is not None and not (0.0 <= args.tile_overlap <= 0.5):
+        errors.append("Ungueltiger Wert fuer --tile_overlap (0.0-0.5).")
+    if args.mask_ttl is not None and (args.mask_ttl < 0 or args.mask_ttl > 120):
+        errors.append("Ungueltiger Wert fuer --mask_ttl (0-120).")
     if args.test_minutes is not None and args.test_minutes < 0:
         errors.append("Ungueltiger Wert fuer --test_minutes (muss >= 0 sein).")
     if args.log_every is not None and args.log_every < 0:
@@ -520,6 +907,8 @@ def apply_loaded_preset(args: argparse.Namespace, params: dict) -> None:
         "no_plates": "--no_plates",
         "no_faces": "--no_faces",
         "tiling": "--tiling",
+        "tile_overlap": "--tile_overlap",
+        "mask_ttl": "--mask_ttl",
         "test_minutes": "--test_minutes",
         "log_every": "--log_every",
         "no_pixel_zone_px1": "--no_pixel_zone_px1",
@@ -571,6 +960,8 @@ def save_preset_files(args: argparse.Namespace) -> None:
         "no_plates": args.no_plates,
         "no_faces": args.no_faces,
         "tiling": args.tiling,
+        "tile_overlap": args.tile_overlap,
+        "mask_ttl": args.mask_ttl,
         "test_minutes": args.test_minutes,
         "log_every": args.log_every,
         "no_pixel_zone_px1": args.no_pixel_zone_px1,
@@ -734,11 +1125,39 @@ def process_video(
     track_notice_printed = False
     zones_px = []
     for zone_arg in [args.no_pixel_zone_px1, args.no_pixel_zone_px2, args.no_pixel_zone_px3, args.no_pixel_zone_px4]:
+        if not zone_arg:
+            continue
         try:
             zx1, zy1, zx2, zy2 = [int(v) for v in zone_arg.split(",")]
-            zones_px.append((zx1, zy1, zx2, zy2))
+            zx1, zx2 = sorted((zx1, zx2))
+            zy1, zy2 = sorted((zy1, zy2))
+            zone = clip_box((zx1, zy1, zx2, zy2), w, h)
+            if box_area(zone) > 0:
+                zones_px.append(zone)
         except Exception:
             continue
+    temporal_tracks = []
+    ultralytics_tracking_ready, tracker_reset_errors = reset_ultralytics_trackers(models)
+    for error in tracker_reset_errors:
+        print(
+            f"Warnung: Ultralytics-Tracker konnte nicht zurueckgesetzt werden ({error}); "
+            "Tracking ist fuer dieses Video deaktiviert.",
+            file=sys.stderr,
+        )
+    for model, _ in models:
+        if not install_raw_detection_capture(model):
+            print(
+                "Rohe YOLO-Detektionen koennen nicht sicher abgegriffen werden; Verarbeitung abgebrochen.",
+                file=sys.stderr,
+            )
+            cap.release()
+            return 2
+    tracking_requested = (not args.no_track) and args.tiling == 1 and ultralytics_tracking_ready
+    tracking_disabled_models = set()
+    model_devices = {
+        id(model): getattr(model, "_dsgvo_effective_device", args.device)
+        for model, _ in models
+    }
 
     def print_progress(processed_frames: int, current_frame: int = 0) -> None:
         nonlocal last_log_time, last_log_frame
@@ -779,49 +1198,43 @@ def process_video(
                 break
 
             det_frame = frame
-            scale = 1.0
+            scale_x = 1.0
+            scale_y = 1.0
             if args.work_w and args.work_w > 0 and args.work_w < w:
-                scale = args.work_w / float(w)
-                new_h = int(h * scale)
+                requested_scale = args.work_w / float(w)
+                new_h = max(1, int(h * requested_scale))
                 det_frame = cv2.resize(frame, (args.work_w, new_h), interpolation=cv2.INTER_AREA)
 
-            nz_list = []
-            for zx1, zy1, zx2, zy2 in zones_px:
-                nz_list.append((zx1, zy1, zx2, zy2))
-            if args.debug_no_pixel and nz_list:
-                for zx1, zy1, zx2, zy2 in nz_list:
-                    cv2.rectangle(frame, (zx1, zy1), (zx2, zy2), (0, 0, 255), 3)
-
             det_h, det_w = det_frame.shape[:2]
-            if args.tiling > 1:
-                tile_w = det_w // args.tiling
-                tile_h = det_h // args.tiling
-                tiles = []
-                for ty in range(args.tiling):
-                    y0 = ty * tile_h
-                    y1 = det_h if ty == args.tiling - 1 else (ty + 1) * tile_h
-                    for tx in range(args.tiling):
-                        x0 = tx * tile_w
-                        x1 = det_w if tx == args.tiling - 1 else (tx + 1) * tile_w
-                        tiles.append((x0, y0, x1, y1))
-            else:
-                tiles = [(0, 0, det_w, det_h)]
+            scale_x = det_w / float(w)
+            scale_y = det_h / float(h)
+            tiles = build_tiles(det_w, det_h, args.tiling, args.tile_overlap)
 
-            use_tracking = (not args.no_track) and args.tiling == 1
             if args.tiling > 1 and not args.no_track and not track_notice_printed:
-                print("Hinweis: Tracking ist bei Tiling deaktiviert.", file=sys.stderr)
+                print(
+                    "Hinweis: Ultralytics-Tracking ist bei Tiling deaktiviert; "
+                    f"zeitliche Sicherheitsmasken bleiben fuer {args.mask_ttl} Frames aktiv.",
+                    file=sys.stderr,
+                )
                 track_notice_printed = True
 
+            detections_by_kind = {}
             for x0, y0, x1, y1 in tiles:
                 tile = det_frame[y0:y1, x0:x1]
                 for model, kind in models:
+                    model_id = id(model)
+                    model_use_tracking = tracking_requested and model_id not in tracking_disabled_models
+                    effective_device = model_devices[model_id]
+                    predictor = getattr(model, "predictor", None)
+                    if predictor is not None:
+                        predictor._dsgvo_raw_xyxy = None
                     try:
-                        if use_tracking:
+                        if model_use_tracking:
                             results = model.track(
                                 tile,
                                 conf=args.conf,
                                 imgsz=args.imgsz,
-                                device=args.device,
+                                device=effective_device,
                                 verbose=False,
                                 persist=True,
                             )
@@ -830,58 +1243,107 @@ def process_video(
                                 tile,
                                 conf=args.conf,
                                 imgsz=args.imgsz,
-                                device=args.device,
+                                device=effective_device,
                                 verbose=False,
                             )
                     except Exception as e:
-                        if args.device != "cpu":
-                            if use_tracking:
-                                results = model.track(
-                                    tile,
-                                    conf=args.conf,
-                                    imgsz=args.imgsz,
-                                    device="cpu",
-                                    verbose=False,
-                                    persist=True,
-                                )
-                            else:
-                                results = model.predict(
-                                    tile,
-                                    conf=args.conf,
-                                    imgsz=args.imgsz,
-                                    device="cpu",
-                                    verbose=False,
-                                )
+                        if str(effective_device).lower() != "cpu":
+                            error_summary = str(e).strip().splitlines()[0] or type(e).__name__
+                            print(
+                                f"Warnung: Inferenz auf {effective_device} fehlgeschlagen ({error_summary}); "
+                                "dieses Modell verwendet ab jetzt CPU.",
+                                file=sys.stderr,
+                            )
+                            effective_device = "cpu"
+                            model_devices[model_id] = effective_device
+                            model._dsgvo_effective_device = effective_device
+                            if model_use_tracking:
+                                reset_ready, reset_errors = reset_ultralytics_trackers([(model, kind)])
+                                if not reset_ready:
+                                    tracking_disabled_models.add(model_id)
+                                    model_use_tracking = False
+                                    for error in reset_errors:
+                                        print(
+                                            f"Warnung: Tracker-Neustart fehlgeschlagen ({error}); "
+                                            "Tracking ist fuer dieses Modell deaktiviert.",
+                                            file=sys.stderr,
+                                        )
+                            predictor = getattr(model, "predictor", None)
+                            if predictor is not None:
+                                predictor._dsgvo_raw_xyxy = None
+                            # model.track() registered the tracker callbacks before the failed call.
+                            # predict() avoids registering them a second time during the device switch.
+                            results = model.predict(
+                                tile,
+                                conf=args.conf,
+                                imgsz=args.imgsz,
+                                device="cpu",
+                                verbose=False,
+                            )
                         else:
                             raise e
 
-                    boxes = results[0].boxes
-                    if boxes is not None and len(boxes) > 0:
-                        for b in boxes:
-                            xyxy = b.xyxy[0].cpu().numpy().astype(int)
-                            bx1, by1, bx2, by2 = xyxy.tolist()
-                            bx1 += x0
-                            by1 += y0
-                            bx2 += x0
-                            by2 += y0
-                            if scale != 1.0:
-                                bx1 = int(bx1 / scale)
-                                by1 = int(by1 / scale)
-                                bx2 = int(bx2 / scale)
-                                by2 = int(by2 / scale)
-                            bx1, by1, bx2, by2 = apply_pad(bx1, by1, bx2, by2, args.pad, w, h)
-                            if nz_list and any(boxes_overlap((bx1, by1, bx2, by2), nz) for nz in nz_list):
-                                continue
-                            if args.anonymize == "blur":
-                                blur_roi(frame, bx1, by1, bx2, by2, args.blur_ksize)
-                            else:
-                                blocks_val = args.blocks_faces if kind == "faces" else args.blocks_plates
-                                pixelate_roi(frame, bx1, by1, bx2, by2, blocks_val)
-                            if args.debug_pixel:
-                                cv2.rectangle(frame, (bx1, by1), (bx2, by2), (0, 255, 0), 2)
+                    predictor = getattr(model, "predictor", None)
+                    raw_results = getattr(predictor, "_dsgvo_raw_xyxy", None)
+                    if raw_results is None or len(raw_results) != 1:
+                        raise RuntimeError("Rohe YOLO-Detektionen fehlen; unsichere Tracker-Ausgabe wird nicht verwendet")
+                    xyxy_batches = [raw_results[0]]
+                    if model_use_tracking and results:
+                        tracked_boxes = results[0].boxes
+                        if tracked_boxes is not None and len(tracked_boxes) > 0:
+                            xyxy_batches.append(tracked_boxes.xyxy.cpu().numpy())
+                    kind_boxes = detections_by_kind.setdefault(kind, [])
+                    for xyxy_list in xyxy_batches:
+                        for xyxy in xyxy_list:
+                            box = map_detection_box(xyxy, x0, y0, scale_x, scale_y, w, h)
+                            if box_area(box) > 0:
+                                kind_boxes.append(box)
 
                     if args.log_seconds > 0 and (time.time() - last_log_time) >= args.log_seconds:
                         print_progress(frame_idx, frame_idx + 1)
+
+            current_detections = []
+            for kind in sorted(detections_by_kind):
+                for box in merge_overlapping_boxes(detections_by_kind[kind]):
+                    current_detections.append((kind, box))
+
+            temporal_masks = update_temporal_masks(
+                current_detections,
+                temporal_tracks,
+                args.mask_ttl,
+                w,
+                h,
+            )
+            masks_by_kind = {}
+            for kind, box, missed in temporal_masks:
+                pad = args.pad
+                if missed > 0:
+                    max_side = max(box[2] - box[0], box[3] - box[1])
+                    pad += max(2 * missed, int(math.ceil(max_side * 0.08 * missed)))
+                padded = apply_pad(box[0], box[1], box[2], box[3], pad, w, h)
+                if box_area(padded) > 0:
+                    masks_by_kind.setdefault(kind, []).append(padded)
+
+            debug_boxes = []
+            for kind in sorted(masks_by_kind):
+                blocks_val = args.blocks_faces if kind == "faces" else args.blocks_plates
+                for box in merge_overlapping_boxes(masks_by_kind[kind]):
+                    anonymize_box_excluding_zones(
+                        frame,
+                        box,
+                        zones_px,
+                        args.anonymize,
+                        args.blur_ksize,
+                        blocks_val,
+                    )
+                    debug_boxes.append(box)
+
+            if args.debug_pixel:
+                for bx1, by1, bx2, by2 in debug_boxes:
+                    cv2.rectangle(frame, (bx1, by1), (max(bx1, bx2 - 1), max(by1, by2 - 1)), (0, 255, 0), 2)
+            if args.debug_no_pixel:
+                for zx1, zy1, zx2, zy2 in zones_px:
+                    cv2.rectangle(frame, (zx1, zy1), (max(zx1, zx2 - 1), max(zy1, zy2 - 1)), (0, 0, 255), 3)
 
             if next_snapshot_frame and frame_idx >= next_snapshot_frame:
                 snap = frame
@@ -961,8 +1423,16 @@ def process_video(
         print(f"Encoder: {args.codec}{' (SW)' if use_sw else ' (HW)'}")
         print(f"Audio: {'aus' if args.no_audio else 'an'}")
         print(f"Video-Fade: {args.fade_seconds:g}s" if args.fade_seconds > 0 else "Video-Fade: aus")
-        print(f"Tracking: {'aus' if args.no_track else 'an'}")
-        print(f"Tiling: {args.tiling}x{args.tiling}")
+        tracking_active_models = len(models) - len(tracking_disabled_models) if tracking_requested else 0
+        if tracking_active_models == len(models) and tracking_active_models > 0:
+            tracking_state = "an"
+        elif tracking_active_models > 0:
+            tracking_state = "teilweise"
+        else:
+            tracking_state = "aus"
+        print(f"Ultralytics-Tracking: {tracking_state}")
+        print(f"Zeitliche Sicherheitsmaske: {args.mask_ttl} Frames" if args.mask_ttl > 0 else "Zeitliche Sicherheitsmaske: aus")
+        print(f"Tiling: {args.tiling}x{args.tiling} | Overlap: {args.tile_overlap:g}")
         if snapshot_count:
             print(f"Snapshots: {snapshot_count} ({args.snapshot_dir})")
         print(f"Dauer: {proc_min}m {proc_sec}s")
@@ -994,13 +1464,13 @@ def main() -> int:
         print("  --blocks_faces 24     (Gesichter, groesser = grober)")
         print("  --blocks 16           (deprecated)")
         print("  --pad 24              (Standard quality; Sicherheitsrand)")
-        print("  --no_pixel_zone_px1 120,1500,900,2160 (Pixel-Zone, x1,y1,x2,y2)")
+        print("  --no_pixel_zone_px1 120,1500,900,2160 (nur der Zonenanteil bleibt unveraendert)")
         print("  --test_minutes 2      (nur erste 2 Minuten verarbeiten)")
         print("  --debug_pixel         (BBox-Overlay fuer Debug)")
         print("  --debug_no_pixel      (No-Pixel-Zonen rot einzeichnen)")
         print("  --no_audio            (Audio entfernen)")
         print("  --fade_seconds 1.5    (Video-Fade aus/nach Schwarz, 0 = aus)")
-        print("  --no_track            (Tracking deaktivieren)")
+        print("  --no_track            (Ultralytics-Tracking deaktivieren; Sicherheitsmaske bleibt aktiv)")
         print("  --log_seconds 5       (Status spaetestens alle 5 Sekunden)")
         print("  --snapshot_every 5    (Snapshot alle 5 Minuten)")
         print("  --snapshot_size 1920x1080 (Snapshot-Groesse)")
@@ -1008,6 +1478,8 @@ def main() -> int:
         print("  --input /pfad/zu/ordner  (Batch: alle .mp4-Dateien im Ordner)")
         print("  --input '*.mp4' oder a.mp4,b.mp4  (Glob oder Mehrfachinput)")
         print("  --tiling 2            (2x2 Tiling fuer kleine Kennzeichen, default)")
+        print("  --tile_overlap 0.2    (Ueberlappung gegen Trefferluecken an Tile-Grenzen)")
+        print("  --mask_ttl 3          (Masken bei kurzen Erkennungsaussetzern weiterfuehren)")
         print("  --no_plates           (nur Gesichter anonymisieren)")
         print("  --no_faces            (nur Kennzeichen anonymisieren)")
         print("  --force_sw            (Software-Encoding erzwingen)")

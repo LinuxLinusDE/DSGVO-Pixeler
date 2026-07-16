@@ -584,7 +584,7 @@
             <div class="checks" aria-label="Debug Flags">
               <label class="check-item"><input id="debugPixel" type="checkbox" /> <span data-i18n="flag_debug_pixel">--debug_pixel (gruene Erkennungsboxen)</span></label>
               <label class="check-item"><input id="debugNoPixel" type="checkbox" /> <span data-i18n="flag_debug_no_pixel">--debug_no_pixel (rote No-Pixel-Zonen)</span></label>
-              <label class="check-item"><input id="noTrack" type="checkbox" /> <span data-i18n="flag_no_track">--no_track (Tracking aus)</span></label>
+              <label class="check-item"><input id="noTrack" type="checkbox" /> <span data-i18n="flag_no_track">--no_track (Ultralytics-Tracking aus)</span></label>
               <label class="check-item"><input id="noAudio" type="checkbox" /> <span data-i18n="flag_no_audio">--no_audio (Audio entfernen)</span></label>
               <label class="check-item"><input id="forceSw" type="checkbox" /> <span data-i18n="flag_force_sw">--force_sw (Software-Encoding)</span></label>
             </div>
@@ -656,6 +656,18 @@
                   <label for="tiling" data-i18n="label_tiling">tiling</label>
                   <input id="tiling" type="number" min="1" max="10" value="2" />
                   <div class="help" data-i18n="help_tiling">1 = aus, 2 = 2x2. Mehr hilft bei kleinen Objekten, kostet Zeit.</div>
+                </div>
+
+                <div class="field">
+                  <label for="tileOverlap" data-i18n="label_tile_overlap">tile_overlap</label>
+                  <input id="tileOverlap" type="number" min="0" max="0.5" step="0.05" value="0.2" />
+                  <div class="help" data-i18n="help_tile_overlap">Ueberlappung gegen Trefferluecken an Kachelgrenzen (0.0-0.5).</div>
+                </div>
+
+                <div class="field">
+                  <label for="maskTtl" data-i18n="label_mask_ttl">mask_ttl</label>
+                  <input id="maskTtl" type="number" min="0" max="120" value="3" />
+                  <div class="help" data-i18n="help_mask_ttl">Letzte Box bei Erkennungsaussetzern N Frames weiter maskieren (0 = aus).</div>
                 </div>
 
                 <div class="field">
@@ -739,7 +751,7 @@
       <div class="right-stack">
         <section class="card">
           <h2 data-i18n="section_zones">No-Pixel-Zonen (x1,y1,x2,y2)</h2>
-          <p class="subtle" data-i18n="zones_help">Bild wird nur lokal im Browser verarbeitet, nichts wird hochgeladen.</p>
+          <p class="subtle" data-i18n="zones_help">Bild wird nur lokal verarbeitet. Pixel in der Zone bleiben unveraendert; ueberlappende Boxteile ausserhalb werden weiter anonymisiert.</p>
 
           <div class="zone-top">
             <div class="field">
@@ -873,7 +885,7 @@
           flag_no_faces: "--no_faces (Gesichter deaktivieren)",
           flag_debug_pixel: "--debug_pixel (gruene Erkennungsboxen)",
           flag_debug_no_pixel: "--debug_no_pixel (rote No-Pixel-Zonen)",
-          flag_no_track: "--no_track (Tracking aus)",
+          flag_no_track: "--no_track (Ultralytics-Tracking aus)",
           flag_no_audio: "--no_audio (Audio entfernen)",
           flag_force_sw: "--force_sw (Software-Encoding)",
           section_advanced: "Erweitert",
@@ -904,6 +916,10 @@
           help_blocks_deprecated: "Altes Feld. Besser blocks_plates und blocks_faces nutzen.",
           label_tiling: "tiling",
           help_tiling: "1 = aus, 2 = 2x2. Mehr hilft bei kleinen Objekten, kostet Zeit.",
+          label_tile_overlap: "tile_overlap",
+          help_tile_overlap: "Ueberlappung gegen Trefferluecken an Kachelgrenzen (0.0-0.5).",
+          label_mask_ttl: "mask_ttl",
+          help_mask_ttl: "Letzte Box bei Erkennungsaussetzern N Frames weiter maskieren (0 = aus).",
           label_test_minutes: "test_minutes",
           help_test_minutes: "Optional. Nur die ersten N Minuten verarbeiten (0 = ganzes Video).",
           label_log_every: "log_every",
@@ -926,7 +942,7 @@
           ph_load_preset: "Dateipfad oder Name",
           help_load_preset: "Preset JSON laden (Datei oder Basisname).",
           section_zones: "No-Pixel-Zonen (x1,y1,x2,y2)",
-          zones_help: "Bild wird nur lokal im Browser verarbeitet, nichts wird hochgeladen.",
+          zones_help: "Bild wird nur lokal im Browser verarbeitet. Pixel in der Zone bleiben unveraendert; ueberlappende Boxteile ausserhalb werden weiter anonymisiert.",
           label_zone_image: "Bild laden",
           help_zone_image: "Nutze ein Standbild mit derselben Aufloesung wie dein Video. Datei waehlen oder per Drag-and-Drop auf das Canvas ziehen.",
           label_zone_slot: "Aktive Zone",
@@ -1007,7 +1023,7 @@
           flag_no_faces: "--no_faces (disable face detection)",
           flag_debug_pixel: "--debug_pixel (green detection boxes)",
           flag_debug_no_pixel: "--debug_no_pixel (red no-pixel zones)",
-          flag_no_track: "--no_track (disable tracking)",
+          flag_no_track: "--no_track (disable Ultralytics tracking)",
           flag_no_audio: "--no_audio (remove audio)",
           flag_force_sw: "--force_sw (force software encoding)",
           section_advanced: "Advanced",
@@ -1038,6 +1054,10 @@
           help_blocks_deprecated: "Legacy field. Prefer blocks_plates and blocks_faces.",
           label_tiling: "tiling",
           help_tiling: "1 = off, 2 = 2x2. Higher helps with tiny objects but costs time.",
+          label_tile_overlap: "tile_overlap",
+          help_tile_overlap: "Overlap that prevents detection gaps at tile boundaries (0.0-0.5).",
+          label_mask_ttl: "mask_ttl",
+          help_mask_ttl: "Keep the last box masked for N missed frames (0 = off).",
           label_test_minutes: "test_minutes",
           help_test_minutes: "Optional. Process only the first N minutes (0 = full video).",
           label_log_every: "log_every",
@@ -1060,7 +1080,7 @@
           ph_load_preset: "path or preset name",
           help_load_preset: "Load preset JSON (full path or base name).",
           section_zones: "No-pixel zones (x1,y1,x2,y2)",
-          zones_help: "The image is processed locally in your browser. Nothing is uploaded.",
+          zones_help: "The image is processed locally. Pixels inside the zone remain unchanged; overlapping box parts outside it are still anonymized.",
           label_zone_image: "Load image",
           help_zone_image: "Use a still image with the same resolution as your video. Select a file or drag and drop it onto the canvas area.",
           label_zone_slot: "Active zone",
@@ -1097,6 +1117,8 @@
         device: "mps",
         blurKsize: "80",
         tiling: "2",
+        tileOverlap: "0.2",
+        maskTtl: "3",
         testMinutes: "",
         logEvery: "200",
         logSeconds: "5",
@@ -1448,6 +1470,8 @@
         }
 
         appendIfChanged(parts, "--tiling", val("tiling"), defaults.tiling);
+        appendIfChanged(parts, "--tile_overlap", val("tileOverlap"), defaults.tileOverlap);
+        appendIfChanged(parts, "--mask_ttl", val("maskTtl"), defaults.maskTtl);
         if (val("testMinutes") !== "" && val("testMinutes") !== "0") {
           addArg(parts, "--test_minutes", val("testMinutes"));
         }
@@ -1914,6 +1938,8 @@
         document.getElementById("device").value = defaults.device;
         document.getElementById("blurKsize").value = defaults.blurKsize;
         document.getElementById("tiling").value = defaults.tiling;
+        document.getElementById("tileOverlap").value = defaults.tileOverlap;
+        document.getElementById("maskTtl").value = defaults.maskTtl;
         document.getElementById("testMinutes").value = defaults.testMinutes;
         document.getElementById("logEvery").value = defaults.logEvery;
         document.getElementById("logSeconds").value = defaults.logSeconds;

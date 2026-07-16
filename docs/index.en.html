@@ -733,12 +733,12 @@
           <p>True pixel mosaic with separate strengths for plates and faces.</p>
         </div>
         <div class="card">
-          <h3>Tiling & tracking</h3>
-          <p>Better detection of small details via tiling, optional tracking to reduce flicker.</p>
+          <h3>Tiling & safety masks</h3>
+          <p>Overlapping tiles protect tile boundaries, while short detection gaps are bridged over time.</p>
         </div>
         <div class="card">
           <h3>No-pixel zones</h3>
-          <p>Define areas that should never be pixelated — ideal for UI elements.</p>
+          <p>Pixels inside the zone remain unchanged while overlapping box parts outside it are still anonymized.</p>
         </div>
         <div class="card">
           <h3>Snapshots</h3>
@@ -759,8 +759,8 @@
             <li>License plate and face detection (YOLOv8)</li>
             <li>Mosaic pixelation with separate strengths</li>
             <li>Safety padding via <code>--pad</code></li>
-            <li>Tiling for small objects (<code>--tiling</code>)</li>
-            <li>Tracking to reduce flicker (<code>--no_track</code>)</li>
+            <li>Overlapping tiling for small objects (<code>--tiling</code>, <code>--tile_overlap</code>)</li>
+            <li>Temporal safety masks for missed frames (<code>--mask_ttl</code>)</li>
             <li>No-pixel zones with debug overlay</li>
           </ul>
         </div>
@@ -852,11 +852,15 @@
         </details>
         <details>
           <summary>Why is tracking disabled when tiling?</summary>
-          <p>Across tiles, object IDs are inconsistent, so tracking is disabled automatically.</p>
+          <p>Object IDs are inconsistent across tiles, so Ultralytics tracking is disabled automatically. Raw YOLO detections always remain the basis for anonymization; the global safety mask additionally bridges short detection gaps through <code>--mask_ttl</code>.</p>
         </details>
         <details>
           <summary>What is the default value for tiling?</summary>
-          <p>Default is <code>--tiling 2</code> (2x2 grid) for better detection of small plates.</p>
+          <p>Default is <code>--tiling 2</code> with <code>--tile_overlap 0.2</code>. Duplicate detections from overlapping tiles are merged.</p>
+        </details>
+        <details>
+          <summary>What happens when a box only partially overlaps a no-pixel zone?</summary>
+          <p>Only pixels inside the zone remain unchanged. The part of the detected box outside the zone is still anonymized.</p>
         </details>
         <details>
           <summary>Which models are used by default?</summary>

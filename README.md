@@ -81,14 +81,19 @@ Anonymization
 
 Tiling
 - `--tiling N` splits each frame into an NxN grid to improve detection of small objects.
-- Tiling increases processing time and disables tracking. Default is 2x2.
+- Adjacent tiles overlap by `--tile_overlap 0.2` by default so objects crossing tile boundaries can be detected in full.
+- Duplicate detections from tiles and models are merged globally before anonymization.
+- Tiling increases processing time and disables Ultralytics tracking. Default is 2x2.
 
 Tracking
-- Enabled by default to reduce flicker. Disable with `--no_track`.
-- When tiling is active, tracking is turned off.
+- Ultralytics tracking is active with `--tiling 1` and can be disabled with `--no_track`.
+- When tiling is active, Ultralytics tracking is turned off.
+- Raw YOLO detections are always anonymized; tracker boxes only add coverage and never replace detector hits.
+- An independent safety mask keeps detected regions active for `--mask_ttl 3` missed frames by default. Set `--mask_ttl 0` to disable it.
 
 No‑pixel zones
 - Pixel zones: `--no_pixel_zone_px1..4` (x1,y1,x2,y2 in pixels).
+- Pixels inside a zone stay unchanged. If a detected box only partially overlaps a zone, the part outside the zone is still anonymized.
 - `--debug_no_pixel` draws these zones in red.
 
 Snapshots
@@ -112,9 +117,9 @@ Logging
 - Summary at the end shows resolution, bitrate, encoder, audio, tracking, tiling, and model counts.
 
 ## Tiling
-Tiling splits each frame into smaller tiles (e.g. 2x2). This improves detection of very small plates in 4K+ footage, but it increases processing time because YOLO runs on every tile.
+Tiling splits each frame into smaller tiles (e.g. 2x2). This improves detection of very small plates in 4K+ footage. Tiles overlap, and duplicate detections are merged afterwards.
 
-Note: Tiling can make processing much slower. Example (MacBook M4, 5760x3240 @ 29.97 fps): 1798 frames (~59s of video) took 9m 36s with 2x2 tiling.
+Note: Tiling and a larger `--tile_overlap` increase the number of inferred pixels and can make processing considerably slower.
 
 Tip: for quick tests, use `--test_minutes 1`, `--preset fast`, or set `--tiling 1`.
 
@@ -293,7 +298,7 @@ Preset names are derived from the input filename (e.g. `source.mp4` -> `source_p
 - `blocks_faces`: pixel block size for faces (larger = coarser). Default: 24. Recommended: 4-64.
 - `blocks`: deprecated alias for `blocks_plates`. Recommended: 4-64.
 - `pad`: safety padding around each box (pixels). Default: 24. Recommended: 0-100.
-- `no_pixel_zone_px1..4`: up to four pixel zones as `x1,y1,x2,y2` (top-left -> bottom-right).
+- `no_pixel_zone_px1..4`: up to four unchanged zones as `x1,y1,x2,y2`. Only the part of a box inside the zone is excluded.
 - Tip: Use the built-in command builder to define no-pixel zones locally: `docs/command-builder.html`
 - Hosted version: https://linuxlinusde.github.io/DSGVO-Pixeler/command-builder.html
 - `force_sw`: force software encoding.
@@ -305,8 +310,10 @@ Preset names are derived from the input filename (e.g. `source.mp4` -> `source_p
 - `debug_no_pixel`: draws the no-pixel zones in red.
 - `no_audio`: remove the audio track in the output.
 - `fade_seconds`: fade the video in from black and out to black. Default: 1.5. Use 0 to disable.
-- `no_track`: disable tracking (tracking is on by default).
+- `no_track`: disable Ultralytics tracking. It is automatically off during tiling; the temporal safety mask remains active.
 - `tiling`: split the frame into tiles for small objects (1-10). Default: 2. Recommended: 1-4.
+- `tile_overlap`: overlap between adjacent tiles as a fraction (0.0-0.5). Default: 0.2.
+- `mask_ttl`: keep the last or predicted box masked for N missed frames. Default: 3; use 0 to disable.
 - `snapshot_every`: save a snapshot every N minutes (0 = off). Default: 0. Recommended: 0-60.
 - `snapshot_dir`: output folder for snapshots (default: input folder).
 - `snapshot_size`: snapshot size, e.g. 1920x1080.
@@ -333,13 +340,13 @@ Are multiple models processed in parallel?
 No, they run sequentially (more stable and often faster).
 
 Is tracking enabled by default?
-Yes. Disable it with `--no_track` if you prefer raw detections.
+Ultralytics tracking is active only with `--tiling 1`; it is off with the default `--tiling 2`. The separate temporal safety mask remains active for three missed frames by default.
 
 Why is tracking disabled when tiling is enabled?
-Tracking across tiles is unreliable because object IDs cannot be matched consistently between tiles. The tool disables tracking for tiling to avoid unstable results.
+Ultralytics tracking across tiles is unreliable because object IDs cannot be matched consistently between tiles. It is disabled during tiling, while the global temporal safety mask remains active.
 
 What is the default tiling value?
-`--tiling` defaults to `2` (2x2 tiling).
+`--tiling` defaults to `2` (2x2 tiling), and `--tile_overlap` defaults to `0.2`.
 
 ## Insta360 note
 Recommendation: reframe/flat export to 16:9 in Insta360 Studio first, then anonymize.

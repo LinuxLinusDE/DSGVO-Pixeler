@@ -81,14 +81,19 @@ Anonymisierung
 
 Tiling
 - `--tiling N` teilt Frames in ein NxN Raster, verbessert kleine Kennzeichen.
-- Tiling verlangsamt deutlich und deaktiviert Tracking. Default ist 2x2.
+- Benachbarte Kacheln ueberlappen sich standardmaessig um `--tile_overlap 0.2`, damit Objekte an Kachelgrenzen vollstaendig erkannt werden koennen.
+- Doppelte Treffer aus Kacheln und Modellen werden vor der Anonymisierung global zusammengefuehrt.
+- Tiling verlangsamt deutlich und deaktiviert das Ultralytics-Tracking. Default ist 2x2.
 
 Tracking
-- Standardmaessig aktiv, reduziert Flackern. Deaktivieren mit `--no_track`.
-- Bei Tiling wird Tracking automatisch deaktiviert.
+- Ultralytics-Tracking ist mit `--tiling 1` aktiv und kann mit `--no_track` deaktiviert werden.
+- Bei Tiling wird das Ultralytics-Tracking automatisch deaktiviert.
+- Rohe YOLO-Treffer werden immer anonymisiert; Tracker-Boxen erweitern die Abdeckung nur und ersetzen keine Detektion.
+- Eine davon unabhaengige Sicherheitsmaske fuehrt erkannte Bereiche standardmaessig fuer `--mask_ttl 3` Fehlframes weiter. Mit `--mask_ttl 0` wird sie deaktiviert.
 
 No‑Pixel‑Zonen
 - Pixel-Zonen: `--no_pixel_zone_px1..4` (x1,y1,x2,y2 in Pixeln).
+- Pixel innerhalb einer Zone bleiben unveraendert. Ueberlappt eine erkannte Box die Zone nur teilweise, wird ihr ausserhalb liegender Teil weiterhin anonymisiert.
 - `--debug_no_pixel` zeichnet die Zonen rot ein.
 
 Snapshots
@@ -112,9 +117,9 @@ Logging
 - Zusammenfassung am Ende mit Aufloesung, Bitrate, Encoder, Audio, Tracking, Tiling und Modellanzahl.
 
 ## Tiling
-Tiling teilt jedes Frame in kleinere Kacheln (z. B. 2x2). Dadurch werden sehr kleine Kennzeichen in 4K+ besser erkannt, allerdings steigt die Rechenzeit, weil YOLO pro Kachel laeuft.
+Tiling teilt jedes Frame in kleinere Kacheln (z. B. 2x2). Dadurch werden sehr kleine Kennzeichen in 4K+ besser erkannt. Die Kacheln ueberlappen sich, und doppelte Erkennungen werden anschliessend zusammengefuehrt.
 
-Hinweis: Tiling kann die Verarbeitung deutlich verlangsamen. Beispiel (MacBook M4, 5760x3240 @ 29.97 fps): 1798 Frames (~59s Video) dauerten 9m 36s bei 2x2 Tiling.
+Hinweis: Tiling und ein groesserer `--tile_overlap` erhoehen die Zahl der inferierten Pixel und koennen die Verarbeitung deutlich verlangsamen.
 
 Tipp: Fuer schnelle Tests `--test_minutes 1`, `--preset fast` oder `--tiling 1` verwenden.
 
@@ -301,7 +306,7 @@ Preset-Namen leiten sich vom Input-Dateinamen ab (z. B. `source.mp4` -> `source_
 - `blocks_faces`: Pixelblock-Groesse fuer Gesichter (groesser = grober). Default: 24. Empfohlen: 4-64.
 - `blocks`: deprecatedes Alias fuer `blocks_plates`. Empfohlen: 4-64.
 - `pad`: Sicherheitsrand in Pixeln um jede Box. Default: 24. Empfohlen: 0-100.
-- `no_pixel_zone_px1..4`: Bis zu vier No-Pixel-Zonen in Pixeln als `x1,y1,x2,y2` (oben links -> unten rechts).
+- `no_pixel_zone_px1..4`: Bis zu vier unveraenderte Zonen in Pixeln als `x1,y1,x2,y2`. Nur der innerhalb der Zone liegende Teil einer Box wird ausgespart.
 - Tipp: Nutze den eingebauten Command-Builder, um No-Pixel-Zonen lokal zu bestimmen: `docs/command-builder.html`
 - Gehostete Version: https://linuxlinusde.github.io/DSGVO-Pixeler/command-builder.html
 - `force_sw`: Software-Encoding erzwingen (nuetzlich, wenn VideoToolbox zickt).
@@ -313,8 +318,10 @@ Preset-Namen leiten sich vom Input-Dateinamen ab (z. B. `source.mp4` -> `source_
 - `debug_no_pixel`: Zeichnet die No-Pixel-Zonen rot ins Video.
 - `no_audio`: Entfernt die Audiospur im Output.
 - `fade_seconds`: Video aus Schwarz einblenden und nach Schwarz ausblenden. Default: 1.5. Mit 0 deaktivieren.
-- `no_track`: Tracking deaktivieren (Tracking ist standardmaessig aktiv).
+- `no_track`: Ultralytics-Tracking deaktivieren. Bei Tiling ist es automatisch aus; die zeitliche Sicherheitsmaske bleibt aktiv.
 - `tiling`: Frame in Kacheln teilen fuer kleine Objekte (1-10). Default: 2. Empfohlen: 1-4.
+- `tile_overlap`: Ueberlappung benachbarter Kacheln als Anteil (0.0-0.5). Default: 0.2.
+- `mask_ttl`: Letzte beziehungsweise vorhergesagte Box bei Erkennungsaussetzern N Frames weiter maskieren. Default: 3, mit 0 deaktivieren.
 - `snapshot_every`: Snapshot alle N Minuten speichern (0 = aus). Default: 0. Empfohlen: 0-60.
 - `snapshot_dir`: Ausgabeordner fuer Snapshots (Default: Input-Ordner).
 - `snapshot_size`: Snapshot-Groesse, z. B. 1920x1080.
@@ -341,13 +348,13 @@ Werden mehrere Modelle parallel verarbeitet?
 Nein, sie laufen nacheinander (stabiler und oft schneller).
 
 Ist Tracking standardmaessig aktiv?
-Ja. Mit `--no_track` kannst du es deaktivieren.
+Das Ultralytics-Tracking ist nur mit `--tiling 1` aktiv; beim Standardwert `--tiling 2` ist es aus. Die separate zeitliche Sicherheitsmaske ist standardmaessig fuer drei Fehlframes aktiv.
 
 Warum ist Tracking bei Tiling deaktiviert?
-Tracking ueber Kacheln ist unzuverlaessig, weil Objekt-IDs nicht konsistent zwischen den Tiles gematcht werden koennen. Daher deaktiviert das Tool Tracking bei Tiling.
+Ultralytics-Tracking ueber Kacheln ist unzuverlaessig, weil Objekt-IDs nicht konsistent zwischen den Tiles gematcht werden koennen. Daher wird es bei Tiling deaktiviert. Die globale zeitliche Sicherheitsmaske funktioniert weiterhin.
 
 Was ist der Standardwert fuer Tiling?
-`--tiling` steht standardmaessig auf `2` (2x2 Tiling).
+`--tiling` steht standardmaessig auf `2` (2x2 Tiling), `--tile_overlap` auf `0.2`.
 
 ## Hinweis zu Insta360
 Empfehlung: In Insta360 Studio zuerst reframen/flat exportieren (16:9), dann mit diesem Tool anonymisieren.

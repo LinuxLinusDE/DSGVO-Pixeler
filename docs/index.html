@@ -733,12 +733,12 @@
           <p>Echte Pixelmosaike mit eigener Stärke für Kennzeichen und Gesichter.</p>
         </div>
         <div class="card">
-          <h3>Tiling & Tracking</h3>
-          <p>Bessere Erkennung kleiner Details durch Tiling, optional mit Tracking gegen Flackern.</p>
+          <h3>Tiling & Sicherheitsmasken</h3>
+          <p>Überlappende Kacheln schützen Tile-Grenzen; kurze Erkennungsaussetzer werden zeitlich überbrückt.</p>
         </div>
         <div class="card">
           <h3>No-Pixel-Zonen</h3>
-          <p>Definiere Bereiche, die niemals verpixelt werden sollen – ideal für UI-Elemente.</p>
+          <p>Pixel innerhalb der Zone bleiben unverändert, während überlappende Boxteile außerhalb weiter anonymisiert werden.</p>
         </div>
         <div class="card">
           <h3>Snapshots</h3>
@@ -759,8 +759,8 @@
             <li>Kennzeichen- und Gesichtserkennung (YOLOv8)</li>
             <li>Mosaik-Verpixelung mit separater Stärke</li>
             <li>Sicherheitsrand per <code>--pad</code></li>
-            <li>Tiling für kleine Objekte (<code>--tiling</code>)</li>
-            <li>Tracking gegen Flackern (<code>--no_track</code>)</li>
+            <li>Überlappendes Tiling für kleine Objekte (<code>--tiling</code>, <code>--tile_overlap</code>)</li>
+            <li>Zeitliche Sicherheitsmasken gegen Fehlframes (<code>--mask_ttl</code>)</li>
             <li>No-Pixel-Zonen mit Debug-Overlay</li>
           </ul>
         </div>
@@ -852,11 +852,15 @@
         </details>
         <details>
           <summary>Warum ist Tracking bei Tiling deaktiviert?</summary>
-          <p>Über Kacheln sind Objekt-IDs nicht konsistent, daher wird Tracking automatisch abgeschaltet.</p>
+          <p>Über Kacheln sind Objekt-IDs nicht konsistent, daher wird Ultralytics-Tracking automatisch abgeschaltet. Rohe YOLO-Treffer bleiben immer Grundlage der Anonymisierung; die globale Sicherheitsmaske überbrückt mit <code>--mask_ttl</code> zusätzlich kurze Erkennungsaussetzer.</p>
         </details>
         <details>
           <summary>Was ist der Standardwert für Tiling?</summary>
-          <p>Standard ist <code>--tiling 2</code> (2x2 Raster) für bessere Erkennung kleiner Kennzeichen.</p>
+          <p>Standard ist <code>--tiling 2</code> mit <code>--tile_overlap 0.2</code>. Doppelte Treffer aus den überlappenden Kacheln werden zusammengeführt.</p>
+        </details>
+        <details>
+          <summary>Was passiert bei einer teilweise überlappten No-Pixel-Zone?</summary>
+          <p>Nur die Pixel innerhalb der Zone bleiben unverändert. Der außerhalb liegende Teil der erkannten Box wird weiterhin anonymisiert.</p>
         </details>
         <details>
           <summary>Welche Modelle werden standardmäßig verwendet?</summary>
