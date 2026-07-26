@@ -66,6 +66,10 @@ class GeometryTests(unittest.TestCase):
             PIXELER.map_detection_box((0, 0, 4, 2), 0, 0, 4 / 7, 2 / 5, 7, 5),
             (0, 0, 7, 5),
         )
+        self.assertEqual(
+            PIXELER.map_detection_box((0.4, 0.4, 10.2, 9.2), 17, 11, 50 / 101, 40 / 81, 101, 81),
+            (35, 23, 55, 41),
+        )
 
     def test_subtract_zone_returns_exact_remaining_pixels(self):
         box = (0, 0, 10, 10)
@@ -114,6 +118,74 @@ class GeometryTests(unittest.TestCase):
                 frame = source.copy()
                 PIXELER.anonymize_box_excluding_zones(frame, (2, 2, 8, 8), [(0, 0, 10, 10)], mode, 7, 4)
                 np.testing.assert_array_equal(frame, source)
+
+    def test_in_place_pixelation_matches_previous_output(self):
+        rng = np.random.default_rng(19)
+        source = rng.integers(0, 256, size=(20, 24, 3), dtype=np.uint8)
+        for box, blocks in [((2, 3, 21, 18), 4), ((0, 0, 24, 20), 1), ((5, 5, 8, 8), 10)]:
+            with self.subTest(box=box, blocks=blocks):
+                x1, y1, x2, y2 = box
+                expected = source.copy()
+                roi = expected[y1:y2, x1:x2]
+                rh, rw = roi.shape[:2]
+                small = PIXELER.cv2.resize(
+                    roi,
+                    (max(1, rw // blocks), max(1, rh // blocks)),
+                    interpolation=PIXELER.cv2.INTER_LINEAR,
+                )
+                expected[y1:y2, x1:x2] = PIXELER.cv2.resize(
+                    small,
+                    (rw, rh),
+                    interpolation=PIXELER.cv2.INTER_NEAREST,
+                )
+
+                actual = source.copy()
+                PIXELER.pixelate_roi(actual, x1, y1, x2, y2, blocks)
+                np.testing.assert_array_equal(actual, expected)
+
+    def test_reusable_resize_buffer_matches_regular_resize(self):
+        rng = np.random.default_rng(23)
+        frame = rng.integers(0, 256, size=(81, 101, 3), dtype=np.uint8)
+        expected = PIXELER.cv2.resize(frame, (50, 40), interpolation=PIXELER.cv2.INTER_AREA)
+        buffer = np.empty((40, 50, 3), dtype=np.uint8)
+        returned = PIXELER.cv2.resize(
+            frame,
+            (50, 40),
+            dst=buffer,
+            interpolation=PIXELER.cv2.INTER_AREA,
+        )
+        self.assertTrue(np.shares_memory(returned, buffer))
+        np.testing.assert_array_equal(buffer, expected)
+
+
+class FrameWriterTests(unittest.TestCase):
+    def test_write_frame_handles_short_writes_without_copying_semantics(self):
+        class PartialPipe:
+            def __init__(self):
+                self.parts = []
+
+            def write(self, data):
+                count = min(7, len(data))
+                self.parts.append(bytes(data[:count]))
+                return count
+
+        source = np.arange(8 * 9 * 3, dtype=np.uint8).reshape(8, 9, 3)
+        frame = source[:, ::2]
+        self.assertFalse(frame.flags.c_contiguous)
+        pipe = PartialPipe()
+        PIXELER.write_frame(pipe, frame)
+        self.assertEqual(b"".join(pipe.parts), np.ascontiguousarray(frame).tobytes())
+
+    def test_write_frame_rejects_zero_or_none_writes(self):
+        frame = np.zeros((2, 2, 3), dtype=np.uint8)
+        for result in (0, None):
+            class BrokenPipe:
+                def write(self, _):
+                    return result
+
+            with self.subTest(result=result):
+                with self.assertRaises(BrokenPipeError):
+                    PIXELER.write_frame(BrokenPipe(), frame)
 
 
 class TemporalMaskTests(unittest.TestCase):
@@ -278,7 +350,6 @@ class TrackerResetTests(unittest.TestCase):
 
         np.testing.assert_array_equal(predictor._dsgvo_raw_xyxy[0], [[10, 20, 30, 40]])
         self.assertEqual(len(predictor.results[0].boxes), 0)
-
 
 if __name__ == "__main__":
     unittest.main()

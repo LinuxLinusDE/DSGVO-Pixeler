@@ -16,13 +16,14 @@ try:
     from ultralytics import YOLO
 except Exception as e:
     print("Fehlende Abhaengigkeiten. Bitte Umgebung einrichten und Pakete installieren:")
-    print("  python3 -m venv .venv")
-    print("  source .venv/bin/activate")
+    print("  Windows:  py -m venv .venv  &&  .venv\\Scripts\\activate")
+    print("  Mac/Linux: python3 -m venv .venv  &&  source .venv/bin/activate")
     print("  pip install -U pip")
     print("  pip install -r requirements.txt")
+    print("  # NVIDIA-GPU: PyTorch mit CUDA installieren, siehe https://pytorch.org/get-started/locally/")
     print("")
     print("Danach starten mit:")
-    print("  python dsgvo-pixeler.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt")
+    print("  python dsgvo-pixeler-win.py --input input.mp4 --output output.mp4 --weights models/plates/best.pt")
     raise SystemExit(2) from e
 
 
@@ -45,7 +46,8 @@ def pixelate_roi(img: np.ndarray, x1: int, y1: int, x2: int, y2: int, blocks: in
     small_w = max(1, rw // blocks)
     small_h = max(1, rh // blocks)
     small = cv2.resize(roi, (small_w, small_h), interpolation=cv2.INTER_LINEAR)
-    cv2.resize(small, (rw, rh), dst=roi, interpolation=cv2.INTER_NEAREST)
+    pixel = cv2.resize(small, (rw, rh), interpolation=cv2.INTER_NEAREST)
+    img[y1:y2, x1:x2] = pixel
 
 
 def blur_roi(img: np.ndarray, x1: int, y1: int, x2: int, y2: int, ksize: int) -> None:
@@ -445,15 +447,95 @@ def install_raw_detection_capture(model) -> bool:
     return True
 
 
-def write_frame(pipe, frame: np.ndarray) -> None:
-    contiguous = np.ascontiguousarray(frame)
-    data = memoryview(contiguous).cast("B")
-    written_total = 0
-    while written_total < len(data):
-        written = pipe.write(data[written_total:])
-        if written is None or written <= 0:
-            raise BrokenPipeError("ffmpeg Pipe hat keine Frame-Daten angenommen")
-        written_total += written
+def resolve_device(requested: str) -> str:
+    """Wandelt --device in ein tatsaechlich verfuegbares Ultralytics-Device um.
+
+    auto  -> NVIDIA-CUDA, sonst Apple MPS, sonst CPU.
+    cuda/0 -> CUDA wenn vorhanden, sonst CPU (mit Warnung).
+    mps    -> MPS wenn vorhanden, sonst automatische Auswahl.
+    cpu / sonstige explizite Angaben -> unveraendert.
+    """
+    req = (requested or "auto").strip().lower()
+
+    def cuda_ok() -> bool:
+        try:
+            import torch
+            return bool(torch.cuda.is_available())
+        except Exception:
+            return False
+
+    def mps_ok() -> bool:
+        try:
+            import torch
+            mps = getattr(torch.backends, "mps", None)
+            return mps is not None and bool(mps.is_available())
+        except Exception:
+            return False
+
+    if req == "auto":
+        if cuda_ok():
+            return "cuda"
+        if mps_ok():
+            return "mps"
+        return "cpu"
+    if req in ("cuda", "gpu") or req.isdigit() or req.startswith("cuda:"):
+        if cuda_ok():
+            return "cuda" if req in ("cuda", "gpu") else requested
+        print("Warnung: CUDA nicht verfuegbar; nutze CPU.", file=sys.stderr)
+        return "cpu"
+    if req == "mps":
+        if mps_ok():
+            return "mps"
+        print("Warnung: MPS nicht verfuegbar; automatische Geraeteauswahl.", file=sys.stderr)
+        return "cuda" if cuda_ok() else "cpu"
+    return requested
+
+
+def list_ffmpeg_encoders() -> set:
+    """Liefert die Menge der von der installierten ffmpeg-Version unterstuetzten Encoder."""
+    try:
+        out = subprocess.check_output(
+            ["ffmpeg", "-hide_banner", "-encoders"],
+            text=True,
+            stderr=subprocess.STDOUT,
+        )
+    except Exception:
+        return set()
+    names = set()
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and re.match(r"^[VAS.][F.][S.][X.][B.][D.]$", parts[0]):
+            names.add(parts[1])
+    return names
+
+
+def resolve_vcodec(codec: str, hwaccel: str, use_sw: bool) -> Tuple[str, str, str]:
+    """Waehlt Encoder, Pixelformat und HW-Art passend zur Plattform.
+
+    Rueckgabe: (vcodec, pix_fmt, hw_kind) wobei hw_kind None fuer Software ist.
+    hwaccel: auto|nvenc|qsv|amf|videotoolbox|software
+    """
+    sw_codec = {"hevc": "libx265", "h264": "libx264"}[codec]
+    accel = (hwaccel or "auto").strip().lower()
+    if use_sw or accel == "software":
+        return sw_codec, "yuv420p", None
+
+    hw_map = {
+        "nvenc": {"hevc": "hevc_nvenc", "h264": "h264_nvenc"},
+        "qsv": {"hevc": "hevc_qsv", "h264": "h264_qsv"},
+        "amf": {"hevc": "hevc_amf", "h264": "h264_amf"},
+        "videotoolbox": {"hevc": "hevc_videotoolbox", "h264": "h264_videotoolbox"},
+    }
+    order = ["nvenc", "qsv", "amf", "videotoolbox"] if accel == "auto" else [accel]
+    available = list_ffmpeg_encoders()
+    for hw in order:
+        candidate = hw_map.get(hw, {}).get(codec)
+        if candidate and (not available or candidate in available):
+            # nv12 wird von allen HW-Encodern (nvenc/qsv/amf/videotoolbox)
+            # zuverlaessig als Eingabe akzeptiert; yuv420p nur fuer Software.
+            return candidate, "nv12", hw
+    # Kein passender Hardware-Encoder gefunden -> sicherer Software-Fallback.
+    return sw_codec, "yuv420p", None
 
 
 def build_ffmpeg_cmd(
@@ -468,15 +550,11 @@ def build_ffmpeg_cmd(
     include_audio: bool,
     fade_seconds: float,
     duration_seconds: float,
+    hwaccel: str = "auto",
 ) -> list:
-    if codec == "hevc":
-        vcodec = "libx265" if use_sw else "hevc_videotoolbox"
-    elif codec == "h264":
-        vcodec = "libx264" if use_sw else "h264_videotoolbox"
-    else:
+    if codec not in ("hevc", "h264"):
         raise ValueError(f"Unsupported codec: {codec}")
-
-    pix_fmt = "yuv420p" if use_sw else "nv12"
+    vcodec, pix_fmt, hw_kind = resolve_vcodec(codec, hwaccel, use_sw)
     video_filters = []
     if fade_seconds > 0:
         video_filters.append(f"fade=t=in:st=0:d={fade_seconds:.3f}")
@@ -522,7 +600,8 @@ def build_ffmpeg_cmd(
         cmd[cmd.index("-movflags"):cmd.index("-movflags")] = ["-c:a", "copy"]
     else:
         cmd[cmd.index("-movflags"):cmd.index("-movflags")] = ["-an"]
-    if not use_sw:
+    if hw_kind == "videotoolbox":
+        # -allow_sw und die H.264-Profil/Level-Flags sind VideoToolbox-spezifisch (macOS).
         idx = cmd.index("-b:v")
         cmd[idx:idx] = ["-allow_sw", "1"]
         if codec == "h264":
@@ -605,7 +684,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--faces_weights", help="YOLOv8 face weights (Liste mit Komma)")
     p.add_argument("--extra_weights", help="Zusatz-Modelle (Liste mit Komma)")
     p.add_argument("--use_extra", action="store_true", help="models/extra/*.pt mitnutzen")
-    p.add_argument("--device", default="mps", help="Ultralytics device, z.B. mps oder cpu")
+    p.add_argument("--device", default="auto", help="Ultralytics device: auto|cuda|cpu|mps. auto = NVIDIA-GPU wenn verfuegbar, sonst CPU (bzw. MPS auf Mac)")
     p.add_argument(
         "--conf",
         type=float,
@@ -661,6 +740,12 @@ def parse_args() -> argparse.Namespace:
         help=f"Sicherheitsrand in Pixel. Default (preset quality): {default_preset['pad']}. Empfohlen: 0-100",
     )
     p.add_argument("--codec", choices=["hevc", "h264"], default="hevc", help="Video codec")
+    p.add_argument(
+        "--hwaccel",
+        choices=["auto", "nvenc", "qsv", "amf", "videotoolbox", "software"],
+        default="auto",
+        help="Hardware-Encoder: auto waehlt NVIDIA(nvenc)/Intel(qsv)/AMD(amf)/Apple(videotoolbox), software = libx264/libx265. Standard: auto",
+    )
     p.add_argument(
         "--bitrate",
         default=None,
@@ -903,6 +988,7 @@ def apply_loaded_preset(args: argparse.Namespace, params: dict) -> None:
         "blur_ksize": "--blur_ksize",
         "pad": "--pad",
         "codec": "--codec",
+        "hwaccel": "--hwaccel",
         "bitrate": "--bitrate",
         "preset": "--preset",
         "force_sw": "--force_sw",
@@ -956,6 +1042,7 @@ def save_preset_files(args: argparse.Namespace) -> None:
         "blur_ksize": args.blur_ksize,
         "pad": args.pad,
         "codec": args.codec,
+        "hwaccel": args.hwaccel,
         "bitrate": args.bitrate,
         "preset": args.preset,
         "force_sw": args.force_sw,
@@ -1113,6 +1200,7 @@ def process_video(
         not args.no_audio,
         args.fade_seconds,
         duration_seconds,
+        args.hwaccel,
     )
     start_time = time.time()
     last_log_time = start_time
@@ -1168,16 +1256,6 @@ def process_video(
         id(model): getattr(model, "_dsgvo_effective_device", args.device)
         for model, _ in models
     }
-    resize_buffer = None
-    det_w, det_h = w, h
-    if args.work_w and args.work_w > 0 and args.work_w < w:
-        requested_scale = args.work_w / float(w)
-        det_w = args.work_w
-        det_h = max(1, int(h * requested_scale))
-        resize_buffer = np.empty((det_h, det_w, 3), dtype=np.uint8)
-    scale_x = det_w / float(w)
-    scale_y = det_h / float(h)
-    tiles = build_tiles(det_w, det_h, args.tiling, args.tile_overlap)
 
     def print_progress(processed_frames: int, current_frame: int = 0) -> None:
         nonlocal last_log_time, last_log_frame
@@ -1217,11 +1295,19 @@ def process_video(
             if not ret:
                 break
 
-            if resize_buffer is not None:
-                cv2.resize(frame, (det_w, det_h), dst=resize_buffer, interpolation=cv2.INTER_AREA)
-                det_frame = resize_buffer
-            else:
-                det_frame = frame
+            det_frame = frame
+            scale_x = 1.0
+            scale_y = 1.0
+            if args.work_w and args.work_w > 0 and args.work_w < w:
+                requested_scale = args.work_w / float(w)
+                new_h = max(1, int(h * requested_scale))
+                det_frame = cv2.resize(frame, (args.work_w, new_h), interpolation=cv2.INTER_AREA)
+
+            det_h, det_w = det_frame.shape[:2]
+            scale_x = det_w / float(w)
+            scale_y = det_h / float(h)
+            tiles = build_tiles(det_w, det_h, args.tiling, args.tile_overlap)
+
             if args.tiling > 1 and not args.no_track and not track_notice_printed:
                 print(
                     "Hinweis: Ultralytics-Tracking ist bei Tiling deaktiviert; "
@@ -1327,7 +1413,7 @@ def process_video(
                 h,
             )
             masks_by_kind = {}
-            for kind, box, missed in dict.fromkeys(temporal_masks):
+            for kind, box, missed in temporal_masks:
                 pad = args.pad
                 if missed > 0:
                     max_side = max(box[2] - box[0], box[3] - box[1])
@@ -1369,7 +1455,7 @@ def process_video(
 
             if proc.stdin is None:
                 raise RuntimeError("ffmpeg stdin nicht verfuegbar")
-            write_frame(proc.stdin, frame)
+            proc.stdin.write(frame.tobytes())
 
             frame_idx += 1
             log_by_frame = args.log_every > 0 and frame_idx % args.log_every == 0
@@ -1606,10 +1692,10 @@ def main() -> int:
             return 2
 
     if not shutil_which("ffmpeg"):
-        print("ffmpeg nicht gefunden. Bitte installieren: brew install ffmpeg", file=sys.stderr)
+        print("ffmpeg nicht gefunden. Bitte installieren (Windows: winget install Gyan.FFmpeg oder ffmpeg.org; Mac: brew install ffmpeg) und in den PATH aufnehmen.", file=sys.stderr)
         return 2
     if (args.bitrate or "").lower() == "auto" and not shutil_which("ffprobe"):
-        print("ffprobe nicht gefunden. Bitte ffmpeg komplett installieren: brew install ffmpeg", file=sys.stderr)
+        print("ffprobe nicht gefunden. Bitte ffmpeg komplett installieren (enthaelt ffprobe) und in den PATH aufnehmen.", file=sys.stderr)
         return 2
 
     models = []
@@ -1634,6 +1720,9 @@ def main() -> int:
 
     if is_batch:
         print(f"Batch-Modus: {len(input_paths)} .mp4-Datei(en) gefunden.")
+
+    args.device = resolve_device(args.device)
+    print(f"Verwende Device: {args.device} | Hardware-Encoder: {args.hwaccel}")
 
     exit_code = 0
     batch_start = time.time()
